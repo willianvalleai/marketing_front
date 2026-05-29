@@ -3,10 +3,11 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { clientService } from '@/shared/services/client.service'
-import type { Asset, Project, Task } from '@/shared/types'
+import { milestonesService } from '@/shared/services/milestones.service'
+import type { Asset, Milestone, Project, Task } from '@/shared/types'
 import { Button } from '@/shared/components/ui/Button'
 import { Textarea } from '@/shared/components/ui/Input'
-import { FolderOpen, Link as LinkIcon, ClipboardList, CheckCircle2, SendHorizonal, MessageSquareText, AlertCircle, Clock, CheckCircle, Circle, ArrowRight } from 'lucide-react'
+import { FolderOpen, Link as LinkIcon, ClipboardList, CheckCircle2, SendHorizonal, MessageSquareText, AlertCircle, Clock, CheckCircle, Circle, ArrowRight, Target } from 'lucide-react'
 import { Modal } from '@/shared/components/ui/Modal'
 
 const Grid = styled.div`
@@ -232,6 +233,83 @@ const StepMeta = styled.div`
   color: ${({ theme }) => theme.colors.textMuted};
   margin-bottom: 10px;
   line-height: 1.4;
+`
+
+const MilestoneGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px 20px;
+`
+
+const MilestoneCard = styled.div<{ $status: string }>`
+  background: ${({ theme }) => theme.colors.surface};
+  border: 2px solid ${({ theme, $status }) =>
+    $status === 'COMPLETED' ? theme.colors.success :
+    $status === 'IN_PROGRESS' ? theme.colors.primary :
+    theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.lg};
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s;
+  
+  &:hover {
+    box-shadow: ${({ theme }) => theme.shadow.md};
+    transform: translateY(-2px);
+  }
+`
+
+const MilestoneCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+`
+
+const MilestoneCardTitle = styled.div`
+  font-size: ${({ theme }) => theme.font.md};
+  font-weight: ${({ theme }) => theme.weights.bold};
+  color: ${({ theme }) => theme.colors.textDark};
+  line-height: 1.3;
+  flex: 1;
+`
+
+const MilestoneStatusBadge = styled.div<{ $status: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: ${({ theme }) => theme.radii.pill};
+  font-size: 10px;
+  font-weight: ${({ theme }) => theme.weights.bold};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: ${({ $status, theme }) =>
+    $status === 'COMPLETED' ? theme.colors.successMid :
+    $status === 'IN_PROGRESS' ? theme.colors.primaryMid :
+    theme.colors.borderStrong};
+  color: ${({ $status, theme }) =>
+    $status === 'COMPLETED' ? theme.colors.successText :
+    $status === 'IN_PROGRESS' ? theme.colors.primaryText :
+    theme.colors.textMuted};
+`
+
+const MilestoneCardDesc = styled.div`
+  font-size: ${({ theme }) => theme.font.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
+  line-height: 1.5;
+`
+
+const MilestoneCardFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  font-size: ${({ theme }) => theme.font.xs};
+  color: ${({ theme }) => theme.colors.textMuted};
 `
 
 const TasksList = styled.div`
@@ -695,6 +773,7 @@ export function ClientProjectPage() {
   const isCliente = user?.role === 'CLIENTE'
   const { projectId } = useParams()
   const [project, setProject] = useState<Project | null>(null)
+  const [milestones, setMilestones] = useState<Milestone[]>([])
   const [loading, setLoading] = useState(true)
 
   const [taskId, setTaskId] = useState<string | null>(null)
@@ -706,7 +785,14 @@ export function ClientProjectPage() {
   const load = useCallback(async () => {
     if (!projectId) return
     setLoading(true)
-    try { setProject(await clientService.project(projectId)) } finally { setLoading(false) }
+    try {
+      const [proj, miles] = await Promise.all([
+        clientService.project(projectId),
+        milestonesService.listByProject(projectId).catch(() => [] as Milestone[])
+      ])
+      setProject(proj)
+      setMilestones(miles)
+    } finally { setLoading(false) }
   }, [projectId])
 
   useEffect(() => { if (isCliente) void load() }, [isCliente, load])
@@ -787,6 +873,105 @@ export function ClientProjectPage() {
       <Head>
         <Title><FolderOpen />{project?.title ?? 'Projeto'}</Title>
       </Head>
+
+      {project && (project.briefing || project.objectives?.length || project.targetAudience || project.budget) && (
+        <Panel>
+          <PanelHead>
+            <PanelTitle><ClipboardList />Briefing do Projeto</PanelTitle>
+          </PanelHead>
+          <div style={{ padding: '16px 20px', display: 'grid', gap: 16 }}>
+            {project.briefing && (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Contexto
+                </div>
+                <div style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {project.briefing}
+                </div>
+              </div>
+            )}
+            {project.objectives && project.objectives.length > 0 && (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Objetivos
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {project.objectives.map((obj, idx) => (
+                    <div key={idx} style={{ 
+                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                      color: 'white',
+                      padding: '6px 12px', 
+                      borderRadius: 8, 
+                      fontSize: 13,
+                      fontWeight: 500
+                    }}>
+                      {obj}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {project.targetAudience && (
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Público-alvo
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#374151' }}>
+                    {project.targetAudience}
+                  </div>
+                </div>
+              )}
+              {project.budget && (
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Orçamento
+                  </div>
+                  <div style={{ fontSize: '18px', color: '#10b981', fontWeight: 700 }}>
+                    R$ {project.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {milestones.length > 0 && (
+        <Panel>
+          <PanelHead>
+            <PanelTitle><Target />Milestones & Fases</PanelTitle>
+          </PanelHead>
+          <MilestoneGrid>
+            {milestones.map((m) => (
+              <MilestoneCard key={m.id} $status={m.status}>
+                <MilestoneCardHeader>
+                  <MilestoneCardTitle>{m.title}</MilestoneCardTitle>
+                  <MilestoneStatusBadge $status={m.status}>
+                    {m.status === 'PENDING' && 'Pendente'}
+                    {m.status === 'IN_PROGRESS' && 'Em Andamento'}
+                    {m.status === 'COMPLETED' && 'Concluído'}
+                  </MilestoneStatusBadge>
+                </MilestoneCardHeader>
+                {m.description && <MilestoneCardDesc>{m.description}</MilestoneCardDesc>}
+                <MilestoneCardFooter>
+                  {m.dueDate && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock style={{ width: 12, height: 12 }} />
+                      {new Date(m.dueDate).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                  {m._count && (
+                    <div>
+                      {m._count.tasks} tarefa{m._count.tasks !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </MilestoneCardFooter>
+              </MilestoneCard>
+            ))}
+          </MilestoneGrid>
+        </Panel>
+      )}
 
       <SplitLayout>
         {/* Coluna esquerda — timeline */}

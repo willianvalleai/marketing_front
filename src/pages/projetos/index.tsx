@@ -174,6 +174,38 @@ const CardTitle = styled.h3`
   line-height: 1.3;
 `
 
+const ProjectStatusBadge = styled.div<{ $status: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: ${({ theme }) => theme.weights.bold};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 8px;
+  background: ${({ $status }) => {
+    switch ($status) {
+      case 'PLANNING': return '#dbeafe'
+      case 'IN_PROGRESS': return '#d1fae5'
+      case 'ON_HOLD': return '#fef3c7'
+      case 'COMPLETED': return '#e5e7eb'
+      case 'CANCELLED': return '#fee2e2'
+      default: return '#e5e7eb'
+    }
+  }};
+  color: ${({ $status }) => {
+    switch ($status) {
+      case 'PLANNING': return '#1e40af'
+      case 'IN_PROGRESS': return '#065f46'
+      case 'ON_HOLD': return '#92400e'
+      case 'COMPLETED': return '#374151'
+      case 'CANCELLED': return '#991b1b'
+      default: return '#374151'
+    }
+  }};
+`
+
 const CardClient = styled.div`
   display: flex;
   align-items: center;
@@ -590,6 +622,12 @@ export function ProjetosPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [clientId, setClientId] = useState('')
+  const [briefing, setBriefing] = useState('')
+  const [objectives, setObjectives] = useState<string[]>([])
+  const [objectiveInput, setObjectiveInput] = useState('')
+  const [targetAudience, setTargetAudience] = useState('')
+  const [budget, setBudget] = useState('')
+  const [projectStatus, setProjectStatus] = useState<'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'>('PLANNING')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -598,6 +636,12 @@ export function ProjetosPage() {
   const [eTitle, setETitle] = useState('')
   const [eDescription, setEDescription] = useState('')
   const [eClientId, setEClientId] = useState('')
+  const [eBriefing, setEBriefing] = useState('')
+  const [eObjectives, setEObjectives] = useState<string[]>([])
+  const [eObjectiveInput, setEObjectiveInput] = useState('')
+  const [eTargetAudience, setETargetAudience] = useState('')
+  const [eProjectStatus, setEProjectStatus] = useState<'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'>('PLANNING')
+  const [eBudget, setEBudget] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [linksOpen, setLinksOpen] = useState(false)
@@ -651,6 +695,11 @@ export function ProjetosPage() {
     setTitle('')
     setDescription('')
     setClientId('')
+    setBriefing('')
+    setObjectives([])
+    setObjectiveInput('')
+    setTargetAudience('')
+    setBudget('')
     setTasks([{ title: '', description: '', priority: 'MEDIUM', dueDate: '', labelsText: '', assigneeIds: [] }])
     setError('')
     setCreateOpen(true)
@@ -662,7 +711,14 @@ export function ProjetosPage() {
     setError(''); setSaving(true)
     try {
       await projectsService.create({
-        title: title.trim(), description: description.trim() || undefined, clientId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        clientId,
+        briefing: briefing.trim() || undefined,
+        objectives: objectives.length > 0 ? objectives : undefined,
+        targetAudience: targetAudience.trim() || undefined,
+        budget: budget ? parseFloat(budget) : undefined,
+        projectStatus,
         tasks: tasks.map((t) => ({ title: t.title.trim(), description: t.description.trim() || undefined, priority: t.priority, dueDate: t.dueDate || undefined, labels: parseLabels(t.labelsText), assigneeIds: t.assigneeIds })).filter((t) => t.title.length > 0),
       })
       setCreateOpen(false)
@@ -693,12 +749,33 @@ export function ProjetosPage() {
     if (!confirm(`Remover link "${a.name}"?`)) return
     await assetsService.remove(a.id); setLinks((c) => c.filter((x) => x.id !== a.id))
   }
-  const openEditProject = (p: Project) => { setEditingProject(p); setETitle(p.title ?? ''); setEDescription(p.description ?? ''); setEClientId(p.clientId ?? ''); setEditOpen(true) }
+  const openEditProject = (p: Project) => {
+    setEditingProject(p)
+    setETitle(p.title ?? '')
+    setEDescription(p.description ?? '')
+    setEClientId(p.clientId ?? '')
+    setEBriefing(p.briefing ?? '')
+    setEObjectives(p.objectives ?? [])
+    setEObjectiveInput('')
+    setETargetAudience(p.targetAudience ?? '')
+    setEBudget(p.budget?.toString() ?? '')
+    setEProjectStatus(p.projectStatus ?? 'PLANNING')
+    setEditOpen(true)
+  }
   const saveEditProject = async () => {
     if (!isAdmin || !editingProject) return
     setSavingEdit(true)
     try {
-      const upd = await projectsService.update(editingProject.id, { title: eTitle.trim(), description: eDescription.trim() || undefined, clientId: eClientId })
+      const upd = await projectsService.update(editingProject.id, {
+        title: eTitle.trim(),
+        description: eDescription.trim() || undefined,
+        clientId: eClientId,
+        briefing: eBriefing.trim() || undefined,
+        objectives: eObjectives.length > 0 ? eObjectives : undefined,
+        targetAudience: eTargetAudience.trim() || undefined,
+        budget: eBudget ? parseFloat(eBudget) : undefined,
+        projectStatus: eProjectStatus,
+      })
       setProjects((c) => c.map((x) => x.id === upd.id ? upd : x)); setEditOpen(false); setEditingProject(null)
     } finally { setSavingEdit(false) }
   }
@@ -762,6 +839,15 @@ export function ProjetosPage() {
                     <div>
                       <CardTitle>{p.title}</CardTitle>
                       <CardClient><UsersIcon />{p.client?.name ?? '—'}</CardClient>
+                      {p.projectStatus && (
+                        <ProjectStatusBadge $status={p.projectStatus}>
+                          {p.projectStatus === 'PLANNING' && 'Planejamento'}
+                          {p.projectStatus === 'IN_PROGRESS' && 'Em Andamento'}
+                          {p.projectStatus === 'ON_HOLD' && 'Pausado'}
+                          {p.projectStatus === 'COMPLETED' && 'Concluído'}
+                          {p.projectStatus === 'CANCELLED' && 'Cancelado'}
+                        </ProjectStatusBadge>
+                      )}
                     </div>
                     {p.description && <CardDesc>{p.description}</CardDesc>}
                     <CardProgress>
@@ -817,6 +903,97 @@ export function ProjetosPage() {
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
             {clients.length === 0 && <Hint>Cadastre um CLIENTE em Usuários primeiro.</Hint>}
+          </FieldGroup>
+
+          <SectionDivider />
+          <FieldGroup>
+            <Label>Briefing <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+            <Textarea value={briefing} onChange={(e) => setBriefing(e.target.value)} placeholder="Descreva o contexto e necessidades do projeto..." style={{ minHeight: 100 }} />
+          </FieldGroup>
+          <FieldGroup>
+            <Label>Objetivos <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <Input 
+                value={objectiveInput} 
+                onChange={(e) => setObjectiveInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const val = objectiveInput.trim()
+                    if (val && !objectives.includes(val)) {
+                      setObjectives([...objectives, val])
+                      setObjectiveInput('')
+                    }
+                  }
+                }}
+                placeholder="Digite um objetivo e pressione Enter" 
+              />
+              <Button 
+                type="button" 
+                data-variant="ghost" 
+                data-size="sm"
+                onClick={() => {
+                  const val = objectiveInput.trim()
+                  if (val && !objectives.includes(val)) {
+                    setObjectives([...objectives, val])
+                    setObjectiveInput('')
+                  }
+                }}
+              >
+                <Plus style={{ width: 14, height: 14 }} />
+              </Button>
+            </div>
+            {objectives.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {objectives.map((obj, idx) => (
+                  <div key={idx} style={{ 
+                    background: '#f3f4f6', 
+                    padding: '4px 8px', 
+                    borderRadius: 6, 
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}>
+                    {obj}
+                    <button
+                      type="button"
+                      onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))}
+                      style={{ 
+                        border: 'none', 
+                        background: 'transparent', 
+                        cursor: 'pointer', 
+                        color: '#9ca3af',
+                        padding: 0,
+                        display: 'flex'
+                      }}
+                    >
+                      <Trash2 style={{ width: 12, height: 12 }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FieldGroup>
+          <Row>
+            <FieldGroup>
+              <Label>Público-alvo <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <Input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Ex: Empresas B2B" />
+            </FieldGroup>
+            <FieldGroup>
+              <Label>Orçamento (R$) <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <Input type="number" step="0.01" min="0" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" />
+            </FieldGroup>
+          </Row>
+          <FieldGroup>
+            <Label>Status do Projeto</Label>
+            <Select value={projectStatus} onChange={(e) => setProjectStatus(e.target.value as any)}>
+              <option value="PLANNING">Planejamento</option>
+              <option value="IN_PROGRESS">Em Andamento</option>
+              <option value="ON_HOLD">Pausado</option>
+              <option value="COMPLETED">Concluído</option>
+              <option value="CANCELLED">Cancelado</option>
+            </Select>
           </FieldGroup>
 
           <SectionDivider />
@@ -921,6 +1098,86 @@ export function ProjetosPage() {
           <div><ModalFieldLabel>Título</ModalFieldLabel><Input value={eTitle} onChange={(e) => setETitle(e.target.value)} placeholder="Título do projeto" /></div>
           <div><ModalFieldLabel>Cliente</ModalFieldLabel><Select value={eClientId} onChange={(e) => setEClientId(e.target.value)}><option value="">Selecione...</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></div>
           <div><ModalFieldLabel>Descrição</ModalFieldLabel><Textarea value={eDescription} onChange={(e) => setEDescription(e.target.value)} placeholder="Descrição (opcional)" style={{ minHeight: 90 }} /></div>
+          <div><ModalFieldLabel>Briefing</ModalFieldLabel><Textarea value={eBriefing} onChange={(e) => setEBriefing(e.target.value)} placeholder="Briefing do projeto (opcional)" style={{ minHeight: 100 }} /></div>
+          <div>
+            <ModalFieldLabel>Objetivos</ModalFieldLabel>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <Input 
+                value={eObjectiveInput} 
+                onChange={(e) => setEObjectiveInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const val = eObjectiveInput.trim()
+                    if (val && !eObjectives.includes(val)) {
+                      setEObjectives([...eObjectives, val])
+                      setEObjectiveInput('')
+                    }
+                  }
+                }}
+                placeholder="Digite um objetivo e pressione Enter" 
+              />
+              <Button 
+                type="button" 
+                data-variant="ghost" 
+                data-size="sm"
+                onClick={() => {
+                  const val = eObjectiveInput.trim()
+                  if (val && !eObjectives.includes(val)) {
+                    setEObjectives([...eObjectives, val])
+                    setEObjectiveInput('')
+                  }
+                }}
+              >
+                <Plus style={{ width: 14, height: 14 }} />
+              </Button>
+            </div>
+            {eObjectives.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {eObjectives.map((obj, idx) => (
+                  <div key={idx} style={{ 
+                    background: '#f3f4f6', 
+                    padding: '4px 8px', 
+                    borderRadius: 6, 
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}>
+                    {obj}
+                    <button
+                      type="button"
+                      onClick={() => setEObjectives(eObjectives.filter((_, i) => i !== idx))}
+                      style={{ 
+                        border: 'none', 
+                        background: 'transparent', 
+                        cursor: 'pointer', 
+                        color: '#9ca3af',
+                        padding: 0,
+                        display: 'flex'
+                      }}
+                    >
+                      <Trash2 style={{ width: 12, height: 12 }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div><ModalFieldLabel>Público-alvo</ModalFieldLabel><Input value={eTargetAudience} onChange={(e) => setETargetAudience(e.target.value)} placeholder="Ex: Empresas B2B" /></div>
+            <div><ModalFieldLabel>Orçamento (R$)</ModalFieldLabel><Input type="number" step="0.01" min="0" value={eBudget} onChange={(e) => setEBudget(e.target.value)} placeholder="0.00" /></div>
+          </div>
+          <div>
+            <ModalFieldLabel>Status do Projeto</ModalFieldLabel>
+            <Select value={eProjectStatus} onChange={(e) => setEProjectStatus(e.target.value as any)}>
+              <option value="PLANNING">Planejamento</option>
+              <option value="IN_PROGRESS">Em Andamento</option>
+              <option value="ON_HOLD">Pausado</option>
+              <option value="COMPLETED">Concluído</option>
+              <option value="CANCELLED">Cancelado</option>
+            </Select>
+          </div>
         </div>
       </Modal>
     </PageWrap>

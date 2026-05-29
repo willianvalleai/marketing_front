@@ -1,9 +1,9 @@
-import { useRef, type CSSProperties } from 'react'
+import { useRef, useMemo, type CSSProperties } from 'react'
 import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 import styled from 'styled-components'
 import type { Task } from '@/shared/types'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Clock, AlertTriangle } from 'lucide-react'
 
 const Wrap = styled.div`
   background: ${({ theme }) => theme.colors.surface};
@@ -76,6 +76,24 @@ const ContextText = styled.span`
   border-radius: ${({ theme }) => theme.radii.pill};
 `
 
+const DueAlertBadge = styled.span<{ $variant: 'warning' | 'danger' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: ${({ theme }) => theme.radii.pill};
+  font-size: 10.5px;
+  font-weight: ${({ theme }) => theme.weights.semibold};
+  background: ${({ $variant, theme }) =>
+    $variant === 'danger' ? theme.colors.dangerMid : theme.colors.warningMid};
+  color: ${({ $variant, theme }) =>
+    $variant === 'danger' ? theme.colors.dangerText : theme.colors.warningText};
+  svg {
+    width: 11px;
+    height: 11px;
+  }
+`
+
 export function TaskCard({
   task,
   onOpen,
@@ -90,6 +108,21 @@ export function TaskCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const didDragRef = useRef(false)
+
+  const dueAlert = useMemo(() => {
+    if (!task.dueDate || task.status === 'DONE') return null
+    const now = new Date()
+    const due = new Date(task.dueDate)
+    const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (daysUntilDue < 0) {
+      return { variant: 'danger' as const, label: `${Math.abs(daysUntilDue)}d atrasada`, icon: AlertTriangle }
+    }
+    if (daysUntilDue <= 3) {
+      return { variant: 'warning' as const, label: `${daysUntilDue}d restante${daysUntilDue !== 1 ? 's' : ''}`, icon: Clock }
+    }
+    return null
+  }, [task.dueDate, task.status])
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -146,6 +179,12 @@ export function TaskCard({
         </CardTop>
         <Meta>
           <PriorityChip $p={task.priority as 'HIGH' | 'MEDIUM' | 'LOW'}>{task.priority}</PriorityChip>
+          {dueAlert && (
+            <DueAlertBadge $variant={dueAlert.variant}>
+              <dueAlert.icon />
+              {dueAlert.label}
+            </DueAlertBadge>
+          )}
           {task.dueDate && <DueDateText>{new Date(task.dueDate).toLocaleDateString('pt-BR')}</DueDateText>}
           {clientName && <ContextText>{clientName}</ContextText>}
           {projectTitle && <ContextText>{projectTitle}</ContextText>}

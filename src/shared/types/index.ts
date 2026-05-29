@@ -48,6 +48,8 @@ export interface TaskComment {
   author: User
 }
 
+export type RecurringPattern = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+
 export interface Task {
   id: string
   title: string
@@ -56,10 +58,20 @@ export interface Task {
   priority: TaskPriority
   type?: TaskType
   dueDate: string | null
+  alertDaysBefore?: number | null
+  alertSentAt?: string | null
+  estimatedHours?: number | null
+  milestoneId?: string | null
+  requiredApprovals?: number | null
+  isRecurring?: boolean
+  recurringPattern?: RecurringPattern | null
+  nextRecurrenceDate?: string | null
+  parentTaskId?: string | null
   labels: string[]
   projectId: string
   assignedToId: string | null
   assignees?: TaskAssignee[]
+  milestone?: Milestone
 }
 
 export interface TaskDetails extends Task {
@@ -71,6 +83,35 @@ export interface TaskDetails extends Task {
   assets?: Asset[]
 }
 
+export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+export type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
+
+export interface Milestone {
+  id: string
+  projectId: string
+  title: string
+  description?: string | null
+  dueDate?: string | null
+  status: MilestoneStatus
+  order: number
+  createdAt: string
+  updatedAt: string
+  _count?: {
+    tasks: number
+  }
+}
+
+export interface TimeLog {
+  id: string
+  taskId: string
+  userId: string
+  hours: number
+  description?: string | null
+  logDate: string
+  createdAt: string
+  user?: User
+}
+
 export interface Project {
   id: string
   title: string
@@ -79,6 +120,12 @@ export interface Project {
   client: User
   tasks: Task[]
   assets?: Asset[]
+  briefing?: string | null
+  objectives?: string[]
+  targetAudience?: string | null
+  budget?: number | null
+  projectStatus?: ProjectStatus
+  milestones?: Milestone[]
 }
 
 export interface ChannelMember {
@@ -111,6 +158,8 @@ export type NotificationType =
   | 'TASK_APPROVED'
   | 'TASK_CHANGES_REQUESTED'
   | 'TASK_REJECTED_INTERNAL'
+  | 'TASK_DUE_SOON'
+  | 'TASK_OVERDUE'
 
 export type EntityType = 'MESSAGE' | 'TASK' | 'PROJECT'
 

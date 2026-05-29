@@ -3,8 +3,10 @@ import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { tasksService } from '@/shared/services/tasks.service'
 import { usersService } from '@/shared/services/users.service'
+import { timeLogsService } from '@/shared/services/time-logs.service'
+import { milestonesService } from '@/shared/services/milestones.service'
 import { getErrorMessage } from '@/shared/services/api'
-import type { ChecklistItem, Task, TaskDetails, TaskPriority, TaskStatus, User } from '@/shared/types'
+import type { ChecklistItem, Milestone, Task, TaskDetails, TaskPriority, TaskStatus, TimeLog, User } from '@/shared/types'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
@@ -138,14 +140,32 @@ export function TaskDetailsModal({
 
   const [details, setDetails] = useState<TaskDetails | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [milestones, setMilestones] = useState<Milestone[]>([])
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM')
   const [status, setStatus] = useState<TaskStatus>('TODO')
   const [dueDate, setDueDate] = useState('')
+  const [alertDaysBefore, setAlertDaysBefore] = useState('')
+  const [estimatedHours, setEstimatedHours] = useState('')
+  const [milestoneId, setMilestoneId] = useState('')
+  const [requiredApprovals, setRequiredApprovals] = useState('')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurringPattern, setRecurringPattern] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('WEEKLY')
   const [labelsText, setLabelsText] = useState('')
   const [assigneeIds, setAssigneeIds] = useState<string[]>([])
+
+  const [timeLogs, setTimeLogs] = useState<TimeLog[]>([])
+  const [newLogHours, setNewLogHours] = useState('')
+  const [newLogDesc, setNewLogDesc] = useState('')
+  const [newLogDate, setNewLogDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [savingLog, setSavingLog] = useState(false)
+  const [editingLogId, setEditingLogId] = useState<string | null>(null)
+  const [editLogHours, setEditLogHours] = useState('')
+  const [editLogDesc, setEditLogDesc] = useState('')
+  const [editLogDate, setEditLogDate] = useState('')
+  const [savingEditLog, setSavingEditLog] = useState(false)
 
   const canInteract = user?.role !== 'CLIENTE'
 
@@ -154,6 +174,10 @@ export function TaskDetailsModal({
     const done = details.assignees.filter((a) => Boolean(a.doneAt)).length
     return Math.round((done / details.assignees.length) * 100)
   }, [details?.assignees])
+
+  const totalWorkedHours = useMemo(() => {
+    return timeLogs.reduce((sum, log) => sum + log.hours, 0)
+  }, [timeLogs])
 
   const load = async (id: string) => {
     setLoading(true)
@@ -170,8 +194,22 @@ export function TaskDetailsModal({
       setPriority(d.priority)
       setStatus(d.status)
       setDueDate(toDateInputValue(d.dueDate))
+      setAlertDaysBefore(d.alertDaysBefore?.toString() ?? '')
+      setEstimatedHours(d.estimatedHours?.toString() ?? '')
+      setMilestoneId(d.milestoneId ?? '')
+      setRequiredApprovals(d.requiredApprovals?.toString() ?? '')
+      setIsRecurring(d.isRecurring ?? false)
+      setRecurringPattern(d.recurringPattern ?? 'WEEKLY')
       setLabelsText((d.labels ?? []).join(', '))
       setAssigneeIds((d.assignees ?? []).map((a) => a.userId))
+      
+      // Carregar milestones e time logs de forma independente
+      const [milestonesResult, logsResult] = await Promise.allSettled([
+        milestonesService.listByProject(d.projectId),
+        timeLogsService.listByTask(id),
+      ])
+      setMilestones(milestonesResult.status === 'fulfilled' ? milestonesResult.value : [])
+      setTimeLogs(logsResult.status === 'fulfilled' ? logsResult.value : [])
     } catch (err) {
       setError(getErrorMessage(err, 'Falha ao carregar detalhes da tarefa.'))
       setDetails(null)
@@ -201,6 +239,12 @@ export function TaskDetailsModal({
         priority,
         status,
         dueDate: dueDate ? dueDate : null,
+        alertDaysBefore: alertDaysBefore ? parseInt(alertDaysBefore) : null,
+        estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
+        milestoneId: milestoneId || null,
+        requiredApprovals: requiredApprovals ? parseInt(requiredApprovals) : null,
+        isRecurring: isRecurring,
+        recurringPattern: isRecurring ? recurringPattern : null,
         labels: parseLabels(labelsText),
         assigneeIds: isAdmin ? assigneeIds : undefined,
       })
@@ -211,6 +255,70 @@ export function TaskDetailsModal({
       setError(getErrorMessage(err, 'Falha ao salvar a tarefa.'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const addTimeLog = async () => {
+    if (!taskId || !newLogHours) return
+    setSavingLog(true)
+    const today = new Date().toISOString().split('T')[0]
+    try {
+      const created = await timeLogsService.create({
+        taskId,
+        hours: parseFloat(newLogHours),
+        description: newLogDesc.trim() || undefined,
+        date: newLogDate || today
+      })
+      setTimeLogs((cur) => [...cur, created])
+      setNewLogHours('')
+      setNewLogDesc('')
+      setNewLogDate(new Date().toISOString().split('T')[0])
+    } catch (err) {
+      console.error('Erro ao adicionar time log:', err)
+    } finally {
+      setSavingLog(false)
+    }
+  }
+
+  const removeTimeLog = async (logId: string) => {
+    if (!confirm('Remover este registro de horas?')) return
+    try {
+      await timeLogsService.remove(logId)
+      setTimeLogs((cur) => cur.filter((log) => log.id !== logId))
+    } catch (err) {
+      console.error('Erro ao remover time log:', err)
+    }
+  }
+
+  const startEditLog = (log: TimeLog) => {
+    setEditingLogId(log.id)
+    setEditLogHours(log.hours.toString())
+    setEditLogDesc(log.description ?? '')
+    setEditLogDate(log.logDate ? log.logDate.split('T')[0] : new Date().toISOString().split('T')[0])
+  }
+
+  const cancelEditLog = () => {
+    setEditingLogId(null)
+    setEditLogHours('')
+    setEditLogDesc('')
+    setEditLogDate('')
+  }
+
+  const saveEditLog = async (logId: string) => {
+    if (!editLogHours) return
+    setSavingEditLog(true)
+    try {
+      const updated = await timeLogsService.update(logId, {
+        hours: parseFloat(editLogHours),
+        description: editLogDesc.trim() || null,
+        logDate: editLogDate || undefined,
+      })
+      setTimeLogs((cur) => cur.map((log) => log.id === logId ? updated : log))
+      cancelEditLog()
+    } catch (err) {
+      console.error('Erro ao editar time log:', err)
+    } finally {
+      setSavingEditLog(false)
     }
   }
 
@@ -486,11 +594,89 @@ export function TaskDetailsModal({
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={!isAdmin} />
                 </Field>
 
+                <Field style={{ flex: 1, minWidth: 150 }}>
+                  <FieldLabel>Alertar (dias antes)</FieldLabel>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    value={alertDaysBefore} 
+                    onChange={(e) => setAlertDaysBefore(e.target.value)} 
+                    disabled={!isAdmin} 
+                    placeholder="Ex: 3" 
+                  />
+                </Field>
+
                 <Field style={{ flex: 1, minWidth: 200 }}>
                   <FieldLabel>Labels (separadas por vírgula)</FieldLabel>
                   <Input value={labelsText} onChange={(e) => setLabelsText(e.target.value)} disabled={!isAdmin} placeholder="ex.: design, urgente" />
                 </Field>
               </Inline>
+
+              {milestones.length > 0 && (
+                <Field>
+                  <FieldLabel>Milestone/Fase</FieldLabel>
+                  <Select value={milestoneId} onChange={(e) => setMilestoneId(e.target.value)} disabled={!isAdmin}>
+                    <option value="">Nenhum</option>
+                    {milestones.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title} ({m.status === 'PENDING' ? 'Pendente' : m.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Concluído'})
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+
+              <Inline>
+                <Field style={{ flex: 1, minWidth: 150 }}>
+                  <FieldLabel>Horas Estimadas</FieldLabel>
+                  <Input 
+                    type="number" 
+                    step="0.5"
+                    min="0" 
+                    value={estimatedHours} 
+                    onChange={(e) => setEstimatedHours(e.target.value)} 
+                    disabled={!isAdmin} 
+                    placeholder="Ex: 8" 
+                  />
+                </Field>
+
+                <Field style={{ flex: 1, minWidth: 150 }}>
+                  <FieldLabel>Aprovações Necessárias</FieldLabel>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={requiredApprovals} 
+                    onChange={(e) => setRequiredApprovals(e.target.value)} 
+                    disabled={!isAdmin} 
+                    placeholder="Ex: 2" 
+                  />
+                </Field>
+              </Inline>
+
+              <Field>
+                <FieldLabel style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isRecurring} 
+                    onChange={(e) => setIsRecurring(e.target.checked)} 
+                    disabled={!isAdmin}
+                    style={{ width: 16, height: 16, cursor: 'pointer' }}
+                  />
+                  Tarefa Recorrente
+                </FieldLabel>
+                {isRecurring && (
+                  <Select 
+                    value={recurringPattern} 
+                    onChange={(e) => setRecurringPattern(e.target.value as any)} 
+                    disabled={!isAdmin}
+                    style={{ marginTop: 8 }}
+                  >
+                    <option value="DAILY">Diariamente</option>
+                    <option value="WEEKLY">Semanalmente</option>
+                    <option value="MONTHLY">Mensalmente</option>
+                  </Select>
+                )}
+              </Field>
 
               <Field>
                 <FieldLabel>Descrição</FieldLabel>
@@ -633,6 +819,171 @@ export function TaskDetailsModal({
               </Field>
             </SectionBody>
           </Section>
+
+          {canInteract && (
+            <Section>
+              <SectionHeader>
+                Registro de Horas
+                {details.estimatedHours && (
+                  <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'normal' }}>
+                    {totalWorkedHours.toFixed(1)}h / {details.estimatedHours}h estimadas
+                  </span>
+                )}
+              </SectionHeader>
+              <SectionBody>
+                {timeLogs.length === 0 ? <Muted>Nenhum registro ainda.</Muted> : (
+                  <List>
+                    {timeLogs.map((log) => (
+                      <Row key={log.id} style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+                        {editingLogId === log.id ? (
+                          <div style={{ width: '100%', display: 'grid', gap: 8 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 130px', gap: 8 }}>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                value={editLogHours}
+                                onChange={(e) => setEditLogHours(e.target.value)}
+                                placeholder="Horas"
+                              />
+                              <Input
+                                value={editLogDesc}
+                                onChange={(e) => setEditLogDesc(e.target.value)}
+                                placeholder="Descrição (opcional)"
+                              />
+                              <Input
+                                type="date"
+                                value={editLogDate}
+                                onChange={(e) => setEditLogDate(e.target.value)}
+                              />
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <Button
+                                data-variant="primary"
+                                data-size="sm"
+                                type="button"
+                                onClick={() => void saveEditLog(log.id)}
+                                disabled={!editLogHours || savingEditLog}
+                                data-loading={savingEditLog ? 'true' : 'false'}
+                              >
+                                Salvar
+                              </Button>
+                              <Button
+                                data-variant="ghost"
+                                data-size="sm"
+                                type="button"
+                                onClick={cancelEditLog}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', gap: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                                <div style={{ fontWeight: 700 }}>
+                                  {log.hours}h — {log.user?.name ?? 'Usuário'}
+                                </div>
+                                <Muted>{new Date(log.logDate).toLocaleDateString('pt-BR')}</Muted>
+                              </div>
+                              {log.description && (
+                                <div style={{ marginTop: 4, fontSize: '13px', color: '#6b7280' }}>{log.description}</div>
+                              )}
+                            </div>
+                            {(isAdmin || user?.id === log.userId) && (
+                              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                <Button
+                                  data-variant="ghost"
+                                  data-size="sm"
+                                  type="button"
+                                  onClick={() => startEditLog(log)}
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  data-variant="ghost"
+                                  data-size="sm"
+                                  type="button"
+                                  onClick={() => void removeTimeLog(log.id)}
+                                  style={{ color: '#ef4444' }}
+                                >
+                                  Remover
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Row>
+                    ))}
+                  </List>
+                )}
+
+                <Field>
+                  <FieldLabel>Registrar Horas Trabalhadas</FieldLabel>
+                  <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 8 }}>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={newLogHours}
+                      onChange={(e) => setNewLogHours(e.target.value)}
+                      placeholder="Ex: 3.5"
+                    />
+                    <Input
+                      value={newLogDesc}
+                      onChange={(e) => setNewLogDesc(e.target.value)}
+                      placeholder="Descrição (opcional)"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Data do trabalho
+                        </span>
+                        <span
+                          title="Informe o dia em que você trabalhou. Útil para registrar horas de dias anteriores. Por padrão, usa a data de hoje."
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            background: '#e5e7eb',
+                            color: '#6b7280',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: 'help',
+                            flexShrink: 0,
+                          }}
+                        >
+                          ?
+                        </span>
+                      </div>
+                      <Input
+                        type="date"
+                        value={newLogDate}
+                        onChange={(e) => setNewLogDate(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      data-variant="primary"
+                      data-size="sm"
+                      onClick={() => void addTimeLog()}
+                      type="button"
+                      disabled={!newLogHours || savingLog}
+                      data-loading={savingLog ? 'true' : 'false'}
+                      style={{ alignSelf: 'flex-end' }}
+                    >
+                      Adicionar
+                    </Button>
+                  </div>
+                </Field>
+              </SectionBody>
+            </Section>
+          )}
         </Grid>
       )}
     </Modal>
