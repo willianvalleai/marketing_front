@@ -11,7 +11,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Modal } from '@/shared/components/ui/Modal'
 import {
   Plus, Trash2, FolderOpen, Users as UsersIcon,
-  Link as LinkIcon, Pencil, CheckSquare, Search,
+  Link as LinkIcon, Pencil, CheckSquare, Search, ChevronRight, MoreVertical,
 } from 'lucide-react'
 import { ClientProjectsPage } from './client'
 import { getErrorMessage } from '@/shared/services/api'
@@ -40,292 +40,427 @@ const PageWrap = styled.div`
 
 const PageHeader = styled.div`
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 `
-
-const PageTitleGroup = styled.div``
 
 const PageTitle = styled.h1`
-  font-size: ${({ theme }) => theme.font.xxxl};
-  font-weight: ${({ theme }) => theme.weights.extrabold};
-  color: ${({ theme }) => theme.colors.textDark};
-  letter-spacing: -0.03em;
-  margin: 0 0 4px;
-  line-height: 1.15;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #e2e2e2;
+  line-height: 1.25;
+  margin: 0;
+  letter-spacing: -0.02em;
 `
 
-const PageSub = styled.p`
-  font-size: ${({ theme }) => theme.font.md};
-  color: ${({ theme }) => theme.colors.textLight};
+const PageSubtitle = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.6;
   margin: 0;
-  font-weight: ${({ theme }) => theme.weights.medium};
+`
+
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+`
+
+const TabsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 24px;
+`
+
+const Tab = styled.button<{ $active?: boolean }>`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: ${({ $active }) => $active ? 600 : 400};
+  color: ${({ $active }) => $active ? '#e2e2e2' : '#8b90a0'};
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  
+  &:hover {
+    color: #e2e2e2;
+  }
+  
+  ${({ $active }) => $active && `
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #8fd8ff;
+      border-radius: 2px 2px 0 0;
+    }
+  `}
+`
+
+const RightControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`
+
+const SortSelect = styled.select`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238b90a0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  padding-right: 24px;
+  
+  &:hover {
+    color: #e2e2e2;
+  }
+`
+
+const NewProjectBtn = styled.button`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: #131313;
+  background: #8fd8ff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 0 20px rgba(143, 216, 255, 0.3);
+  
+  &:hover {
+    background: #adc6ff;
+    box-shadow: 0 0 25px rgba(173, 198, 255, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
 `
 
 const ContentSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
-`
-
-const FilterRow = styled.div`
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  align-items: center;
 `
 
 const CardsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
 `
 
 const ProjectCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.xxl};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  overflow: hidden;
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: clip;
   
   &:hover {
-    box-shadow: ${({ theme }) => theme.shadow.lg};
-    transform: translateY(-6px);
-    border-color: ${({ theme }) => theme.colors.primaryMid};
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translateY(-4px);
   }
 `
 
-const CardBand = styled.div<{ $gradient: string }>`
-  height: 120px;
-  background: ${({ $gradient }) => $gradient};
+const CardTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`
+
+const CardTopLeft = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+`
+
+const CardTopRight = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+`
+
+const CardMenu = styled.div`
   position: relative;
-  flex-shrink: 0;
-  overflow: hidden;
 `
 
-const CardBandDecor = styled.div`
-  position: absolute;
-  inset: 0;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    right: -30px;
-    top: -30px;
-    width: 140px;
-    height: 140px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-    filter: blur(20px);
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    right: 40px;
-    bottom: -40px;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    filter: blur(15px);
-  }
-`
-
-const CardIconFloat = styled.div<{ $gradient: string }>`
-  position: absolute;
-  bottom: -28px;
-  left: 24px;
-  width: 64px;
-  height: 64px;
-  border-radius: ${({ theme }) => theme.radii.xxl};
-  background: ${({ $gradient }) => $gradient};
+const MenuButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: ${({ theme }) => theme.weights.extrabold};
-  font-size: 1.75rem;
-  color: white;
-  border: 4px solid ${({ theme }) => theme.colors.surface};
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  letter-spacing: -0.03em;
-  z-index: 1;
+  color: #8b90a0;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e2e2;
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+  }
 `
 
-const CardContent = styled.div`
-  padding: 38px 24px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  flex: 1;
-`
-
-const CardTitle = styled.h3`
-  font-size: ${({ theme }) => theme.font.lg};
-  font-weight: ${({ theme }) => theme.weights.extrabold};
-  color: ${({ theme }) => theme.colors.textDark};
-  margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-`
-
-const ProjectStatusBadge = styled.div<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
+const MenuDropdown = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(25, 25, 25, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  font-size: 11px;
-  font-weight: ${({ theme }) => theme.weights.bold};
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  display: ${({ $open }) => $open ? 'block' : 'none'};
+`
+
+const MenuItem = styled.button<{ $danger?: boolean }>`
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: ${({ $danger }) => $danger ? '#ffb4ab' : '#e2e2e2'};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: ${({ $danger }) => $danger ? 'rgba(147, 0, 10, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`
+
+const ProjectIcon = styled.div<{ $color: string }>`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: ${({ $color }) => $color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+  }
+`
+
+const StatusBadge = styled.div<{ $status: string }>`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 8px;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
   background: ${({ $status }) => {
     switch ($status) {
-      case 'PLANNING': return '#dbeafe'
-      case 'IN_PROGRESS': return '#d1fae5'
-      case 'ON_HOLD': return '#fef3c7'
-      case 'COMPLETED': return '#e5e7eb'
-      case 'CANCELLED': return '#fee2e2'
-      default: return '#e5e7eb'
+      case 'PLANNING': return 'rgba(173, 198, 255, 0.15)'
+      case 'IN_PROGRESS': return 'rgba(143, 216, 255, 0.15)'
+      case 'ON_HOLD': return 'rgba(245, 158, 11, 0.15)'
+      case 'COMPLETED': return 'rgba(16, 185, 129, 0.15)'
+      case 'CANCELLED': return 'rgba(239, 68, 68, 0.15)'
+      default: return 'rgba(139, 144, 160, 0.15)'
     }
   }};
   color: ${({ $status }) => {
     switch ($status) {
-      case 'PLANNING': return '#1e40af'
-      case 'IN_PROGRESS': return '#065f46'
-      case 'ON_HOLD': return '#92400e'
-      case 'COMPLETED': return '#374151'
-      case 'CANCELLED': return '#991b1b'
-      default: return '#374151'
+      case 'PLANNING': return '#adc6ff'
+      case 'IN_PROGRESS': return '#8fd8ff'
+      case 'ON_HOLD': return '#fbbf24'
+      case 'COMPLETED': return '#10b981'
+      case 'CANCELLED': return '#ef4444'
+      default: return '#8b90a0'
     }
   }};
 `
 
-const CardClient = styled.div`
+const CardTitle = styled.h3`
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: #e2e2e2;
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+`
+
+const CardSubtitle = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: ${({ theme }) => theme.font.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  font-weight: ${({ theme }) => theme.weights.medium};
-  svg { width: 14px; height: 14px; opacity: 0.7; }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+  }
 `
 
-const CardDesc = styled.p`
-  font-size: ${({ theme }) => theme.font.md};
-  color: ${({ theme }) => theme.colors.textLight};
+const CardDescription = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.6;
   margin: 0;
-  line-height: 1.7;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 `
 
-const CardProgress = styled.div`
-  margin-top: 4px;
-`
-
-const ProgressTop = styled.div`
+const ProgressSection = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+  flex-direction: column;
+  gap: 8px;
 `
 
-const ProgressLbl = styled.span`
-  font-size: 12px;
-  font-weight: ${({ theme }) => theme.weights.bold};
-  color: ${({ theme }) => theme.colors.textLight};
+const ProgressLabel = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.5px;
+  color: #8b90a0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `
 
-const ProgressPct = styled.span<{ $done: boolean }>`
-  font-size: 13px;
-  font-weight: ${({ theme }) => theme.weights.extrabold};
-  color: ${({ $done, theme }) => $done ? theme.colors.success : theme.colors.primary};
-  letter-spacing: -0.01em;
+const ProgressPercent = styled.span<{ $complete: boolean }>`
+  font-size: 9px;
+  font-weight: 700;
+  color: ${({ $complete }) => $complete ? '#10b981' : '#8fd8ff'};
 `
 
-const ProgressBar = styled.div`
-  height: 8px;
-  border-radius: 99px;
-  background: ${({ theme }) => theme.colors.border};
+const ProgressBarWrap = styled.div`
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 `
 
-const ProgressFill = styled.div<{ $pct: number; $done: boolean }>`
+const ProgressBarFill = styled.div<{ $pct: number; $complete: boolean }>`
   height: 100%;
   width: ${({ $pct }) => $pct}%;
-  background: ${({ $done }) =>
-    $done
-      ? 'linear-gradient(90deg, #10b981, #34d399)'
-      : 'linear-gradient(90deg, #6366f1, #8b5cf6)'};
+  background: ${({ $complete }) => $complete ? '#10b981' : '#8fd8ff'};
+  border-radius: 999px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 99px;
-  box-shadow: 0 0 8px ${({ $done }) => $done ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)'};
+  box-shadow: ${({ $complete }) => 
+    $complete 
+      ? '0 0 8px rgba(16, 185, 129, 0.5)' 
+      : '0 0 8px rgba(143, 216, 255, 0.5)'};
 `
 
 const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surfaceHover};
+  padding-top: 12px;
+  border-top: 1px solid rgba(65, 71, 85, 0.2);
 `
 
-const TasksInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: ${({ theme }) => theme.weights.bold};
-  color: ${({ theme }) => theme.colors.textDark};
-  svg {
-    width: 16px;
-    height: 16px;
-    color: ${({ theme }) => theme.colors.primary};
-  }
-`
-
-const CardActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`
-
-const ActionBtn = styled.button<{ $danger?: boolean }>`
-  width: 38px;
-  height: 38px;
-  border-radius: ${({ theme }) => theme.radii.lg};
-  border: 1.5px solid transparent;
-  background: transparent;
-  cursor: pointer;
+const ProjectAvatar = styled.div<{ $color: string }>`
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: ${({ $color }) => $color};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.colors.textMuted};
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  svg { width: 16px; height: 16px; }
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: white;
+  border: 2px solid #131313;
+`
+
+const DetailsButton = styled.button`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: #e2e2e2;
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
   
   &:hover {
-    background: ${({ $danger, theme }) => $danger ? theme.colors.dangerFaint : theme.colors.primaryFaint};
-    border-color: ${({ $danger, theme }) => $danger ? theme.colors.dangerMid : theme.colors.primaryMid};
-    color: ${({ $danger, theme }) => $danger ? theme.colors.danger : theme.colors.primary};
-    transform: scale(1.05);
+    color: #8fd8ff;
+    gap: 8px;
   }
   
-  &:active {
-    transform: scale(0.95);
+  svg {
+    width: 16px;
+    height: 16px;
   }
 `
 
@@ -408,7 +543,7 @@ const FieldGroup = styled.div`
 `
 
 const Label = styled.label`
-  font-size: 13px;
+  font-size: 9px;
   font-weight: ${({ theme }) => theme.weights.bold};
   color: ${({ theme }) => theme.colors.textDark};
   text-transform: uppercase;
@@ -498,7 +633,7 @@ const AssignItem = styled.label`
 `
 
 const ModalFieldLabel = styled.div`
-  font-size: 13px;
+  font-size: 9px;
   font-weight: ${({ theme }) => theme.weights.bold};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -617,6 +752,9 @@ export function ProjetosPage() {
   const [q, setQ] = useState('')
   const [clientFilter, setClientFilter] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'all' | 'planning' | 'in_progress' | 'archived'>('all')
+  const [sortBy, setSortBy] = useState('recent')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -684,12 +822,23 @@ export function ProjetosPage() {
 
   const visibleProjects = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return projects.filter((p) => {
+    let filtered = projects.filter((p) => {
       if (clientFilter && p.clientId !== clientFilter) return false
       if (!s) return true
       return (p.title ?? '').toLowerCase().includes(s) || (p.client?.name ?? '').toLowerCase().includes(s)
     })
-  }, [projects, q, clientFilter])
+    
+    // Filter by tab
+    if (activeTab === 'planning') {
+      filtered = filtered.filter(p => p.projectStatus === 'PLANNING')
+    } else if (activeTab === 'in_progress') {
+      filtered = filtered.filter(p => p.projectStatus === 'IN_PROGRESS')
+    } else if (activeTab === 'archived') {
+      filtered = filtered.filter(p => p.projectStatus === 'COMPLETED' || p.projectStatus === 'CANCELLED')
+    }
+    
+    return filtered
+  }, [projects, q, clientFilter, activeTab])
 
   const openCreateModal = () => {
     setTitle('')
@@ -783,35 +932,45 @@ export function ProjetosPage() {
   return (
     <PageWrap>
       <PageHeader>
-        <PageTitleGroup>
-          <PageTitle>Projetos</PageTitle>
-          <PageSub>{projects.length} projeto{projects.length !== 1 ? 's' : ''} no total</PageSub>
-        </PageTitleGroup>
-        {isAdmin && (
-          <Button data-variant="primary" data-size="lg" onClick={openCreateModal}>
-            <Plus />
-            Novo Projeto
-          </Button>
-        )}
+        <PageTitle>Central de Projetos</PageTitle>
+        <PageSubtitle>Gerenciamento suas automações, campanhas e fluxos de IA em um único console unificado.</PageSubtitle>
       </PageHeader>
+
+      <TopBar>
+        <TabsRow>
+          <Tab $active={activeTab === 'all'} onClick={() => setActiveTab('all')}>
+            Todos Projetos
+          </Tab>
+          <Tab $active={activeTab === 'planning'} onClick={() => setActiveTab('planning')}>
+            Em Planejamento
+          </Tab>
+          <Tab $active={activeTab === 'in_progress'} onClick={() => setActiveTab('in_progress')}>
+            Em Execução
+          </Tab>
+          <Tab $active={activeTab === 'archived'} onClick={() => setActiveTab('archived')}>
+            Arquivados
+          </Tab>
+        </TabsRow>
+
+        <RightControls>
+          <SortSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="recent">Sort by: Recent Activity</option>
+            <option value="name">Sort by: Name</option>
+            <option value="progress">Sort by: Progress</option>
+          </SortSelect>
+          {isAdmin && (
+            <NewProjectBtn onClick={openCreateModal}>
+              <Plus />
+              Novo Projeto
+            </NewProjectBtn>
+          )}
+        </RightControls>
+      </TopBar>
 
       <ContentSection>
         {loadError && (
           <div style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontSize: 13 }}>{loadError}</div>
         )}
-
-        <FilterRow>
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-            <Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#9ca3af', pointerEvents: 'none' }} />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por título ou cliente…" style={{ paddingLeft: 34 }} />
-          </div>
-          {isAdmin && (
-            <Select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} style={{ width: 210, flexShrink: 0 }}>
-              <option value="">Todos os clientes</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
-          )}
-        </FilterRow>
 
         <CardsGrid>
           {visibleProjects.length === 0 ? (
@@ -825,52 +984,85 @@ export function ProjetosPage() {
           ) : (
             visibleProjects.map((p, idx) => {
               const pct = progressMap.get(p.id) ?? 0
-              const taskCount = p.tasks?.length ?? 0
-              const doneCount = p.tasks?.filter((t) => t.status === 'DONE').length ?? 0
               const grad = CARD_GRADIENTS[idx % CARD_GRADIENTS.length]
               return (
                 <ProjectCard key={p.id}>
-                  <CardBand $gradient={grad}>
-                    <CardBandDecor />
-                    <CardIconFloat $gradient={grad}>{p.title.charAt(0).toUpperCase()}</CardIconFloat>
-                  </CardBand>
-
-                  <CardContent>
-                    <div>
-                      <CardTitle>{p.title}</CardTitle>
-                      <CardClient><UsersIcon />{p.client?.name ?? '—'}</CardClient>
+                  <CardTop>
+                    <CardTopLeft>
+                      <ProjectIcon $color={grad}>
+                        <FolderOpen />
+                      </ProjectIcon>
+                    </CardTopLeft>
+                    <CardTopRight>
                       {p.projectStatus && (
-                        <ProjectStatusBadge $status={p.projectStatus}>
-                          {p.projectStatus === 'PLANNING' && 'Planejamento'}
-                          {p.projectStatus === 'IN_PROGRESS' && 'Em Andamento'}
-                          {p.projectStatus === 'ON_HOLD' && 'Pausado'}
-                          {p.projectStatus === 'COMPLETED' && 'Concluído'}
-                          {p.projectStatus === 'CANCELLED' && 'Cancelado'}
-                        </ProjectStatusBadge>
+                        <StatusBadge $status={p.projectStatus}>
+                          {p.projectStatus === 'PLANNING' && 'PLANNING'}
+                          {p.projectStatus === 'IN_PROGRESS' && 'ACTIVE'}
+                          {p.projectStatus === 'ON_HOLD' && 'ON HOLD'}
+                          {p.projectStatus === 'COMPLETED' && 'COMPLETED'}
+                          {p.projectStatus === 'CANCELLED' && 'CANCELLED'}
+                        </StatusBadge>
                       )}
-                    </div>
-                    {p.description && <CardDesc>{p.description}</CardDesc>}
-                    <CardProgress>
-                      <ProgressTop>
-                        <ProgressLbl>Progresso</ProgressLbl>
-                        <ProgressPct $done={pct === 100}>{pct}%</ProgressPct>
-                      </ProgressTop>
-                      <ProgressBar><ProgressFill $pct={pct} $done={pct === 100} /></ProgressBar>
-                    </CardProgress>
-                  </CardContent>
+                      {isAdmin && (
+                        <CardMenu>
+                          <MenuButton onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}>
+                            <MoreVertical />
+                          </MenuButton>
+                          <MenuDropdown $open={openMenuId === p.id}>
+                            <MenuItem onClick={() => { openEditProject(p); setOpenMenuId(null) }}>
+                              <Pencil />
+                              Editar
+                            </MenuItem>
+                            <MenuItem onClick={() => { void openLinks(p); setOpenMenuId(null) }}>
+                              <LinkIcon />
+                              Links
+                            </MenuItem>
+                            <MenuItem 
+                              $danger 
+                              onClick={async () => {
+                                setOpenMenuId(null)
+                                if (!confirm(`Excluir "${p.title}"?`)) return
+                                await projectsService.remove(p.id)
+                                await load()
+                              }}
+                            >
+                              <Trash2 />
+                              Excluir
+                            </MenuItem>
+                          </MenuDropdown>
+                        </CardMenu>
+                      )}
+                    </CardTopRight>
+                  </CardTop>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <CardTitle>{p.title}</CardTitle>
+                    <CardSubtitle>
+                      <UsersIcon />
+                      Cliente: {p.client?.name ?? '—'}
+                    </CardSubtitle>
+                  </div>
+
+                  {p.description && <CardDescription>{p.description}</CardDescription>}
+
+                  <ProgressSection>
+                    <ProgressLabel>
+                      Progresso
+                      <ProgressPercent $complete={pct === 100}>{pct}%</ProgressPercent>
+                    </ProgressLabel>
+                    <ProgressBarWrap>
+                      <ProgressBarFill $pct={pct} $complete={pct === 100} />
+                    </ProgressBarWrap>
+                  </ProgressSection>
 
                   <CardFooter>
-                    <TasksInfo><CheckSquare />{doneCount} de {taskCount} tarefa{taskCount !== 1 ? 's' : ''}</TasksInfo>
-                    <CardActions>
-                      {isAdmin && <ActionBtn type="button" title="Editar" onClick={() => openEditProject(p)}><Pencil /></ActionBtn>}
-                      <ActionBtn type="button" title="Links" onClick={() => void openLinks(p)}><LinkIcon /></ActionBtn>
-                      {isAdmin && (
-                        <ActionBtn $danger type="button" title="Excluir" onClick={async () => {
-                          if (!confirm(`Excluir "${p.title}"?`)) return
-                          await projectsService.remove(p.id); await load()
-                        }}><Trash2 /></ActionBtn>
-                      )}
-                    </CardActions>
+                    <ProjectAvatar $color={grad}>
+                      {p.title.charAt(0).toUpperCase()}
+                    </ProjectAvatar>
+                    <DetailsButton onClick={() => void openLinks(p)}>
+                      Details
+                      <ChevronRight />
+                    </DetailsButton>
                   </CardFooter>
                 </ProjectCard>
               )

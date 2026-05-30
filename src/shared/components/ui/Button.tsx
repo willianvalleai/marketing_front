@@ -46,37 +46,44 @@ export const Button = styled.button`
   /* primary */
   &[data-variant='primary'] {
     background: ${({ theme }) => theme.colors.primary};
-    color: white;
-    &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.primaryHover}; }
+    color: #131313;
+    font-weight: ${({ theme }) => theme.weights.medium};
+    box-shadow: 0 0 20px rgba(143, 216, 255, 0.3);
+    &:hover:not(:disabled) { 
+      background: ${({ theme }) => theme.colors.primaryHover}; 
+      box-shadow: 0 0 25px rgba(173, 198, 255, 0.4);
+    }
   }
 
   /* secondary */
   &[data-variant='secondary'] {
-    background: ${({ theme }) => theme.colors.surface};
-    border-color: ${({ theme }) => theme.colors.border};
+    background: ${({ theme }) => theme.colors.surfaceSolid};
+    border-color: transparent;
     color: ${({ theme }) => theme.colors.textDark};
-    &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.bg}; border-color: ${({ theme }) => theme.colors.borderStrong}; }
+    &:hover:not(:disabled) { 
+      background: rgba(42, 42, 42, 0.8); 
+    }
   }
 
   /* ghost */
   &[data-variant='ghost'] {
     background: transparent;
-    color: ${({ theme }) => theme.colors.text};
-    &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.bg}; }
+    color: ${({ theme }) => theme.colors.textLight};
+    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); }
   }
 
   /* danger */
   &[data-variant='danger'] {
     background: ${({ theme }) => theme.colors.dangerFaint};
-    border-color: ${({ theme }) => theme.colors.dangerMid};
-    color: ${({ theme }) => theme.colors.danger};
-    &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.dangerMid}; border-color: ${({ theme }) => theme.colors.danger}; }
+    border-color: ${({ theme }) => theme.colors.borderStrong};
+    color: ${({ theme }) => theme.colors.dangerText};
+    &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.dangerMid}; }
   }
 
   /* danger-filled */
   &[data-variant='danger-filled'] {
     background: ${({ theme }) => theme.colors.danger};
-    color: white;
+    color: #131313;
     &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.dangerHover}; }
   }
 `

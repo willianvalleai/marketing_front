@@ -38,17 +38,17 @@ const Title = styled.div`
 `
 
 const Panel = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.xl};
-  box-shadow: ${({ theme }) => theme.shadow.sm};
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   overflow: hidden;
 `
 
 const PanelHead = styled.div`
-  padding: 12px 16px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 18, 0.5);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -58,55 +58,60 @@ const PanelHead = styled.div`
 const PanelTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: ${({ theme }) => theme.font.md};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  gap: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e2e2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   svg { 
     width: 16px; 
     height: 16px; 
-    color: ${({ theme }) => theme.colors.primary};
+    color: #8fd8ff;
   }
 `
 
 const ProgressSection = styled.div`
-  padding: 16px 20px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 18, 0.3);
 `
 
 const ProgressLabel = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   
   span:first-child {
-    font-size: ${({ theme }) => theme.font.xs};
-    color: ${({ theme }) => theme.colors.textMuted};
-    font-weight: ${({ theme }) => theme.weights.semibold};
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 11px;
+    color: #8b90a0;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.08em;
   }
 `
 
 const ProgressPercent = styled.span<{ $percent: number }>`
-  font-size: ${({ theme }) => theme.font.md};
-  font-weight: ${({ theme }) => theme.weights.bold};
-  color: ${({ $percent, theme }) => 
-    $percent === 100 ? theme.colors.success :
-    $percent >= 75 ? theme.colors.primary :
-    $percent >= 50 ? theme.colors.info :
-    $percent >= 25 ? theme.colors.warning :
-    theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: ${({ $percent }) => 
+    $percent === 100 ? '#10b981' :
+    $percent >= 75 ? '#8fd8ff' :
+    $percent >= 50 ? '#adc6ff' :
+    $percent >= 25 ? '#f59e0b' :
+    '#8b90a0'};
 `
 
 const ProgressBar = styled.div`
   width: 100%;
-  height: 12px;
-  background: ${({ theme }) => theme.colors.bg};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.pill};
+  height: 8px;
+  background: rgba(35, 35, 35, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
   overflow: hidden;
   position: relative;
 `
@@ -114,41 +119,42 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
-  background: ${({ $percent, theme }) => 
+  background: ${({ $percent }) => 
     $percent === 100 
-      ? `linear-gradient(90deg, ${theme.colors.success}, ${theme.colors.successLight})`
-      : `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.primaryLight})`
+      ? 'linear-gradient(90deg, #10b981, #6ee7b7)'
+      : 'linear-gradient(90deg, #8fd8ff, #adc6ff)'
   };
-  border-radius: ${({ theme }) => theme.radii.pill};
+  border-radius: 9999px;
   transition: width 0.6s ease, background 0.3s ease;
   min-width: ${({ $percent }) => $percent > 0 && $percent < 3 ? '3%' : '0'};
+  box-shadow: ${({ $percent }) => $percent > 0 ? '0 0 8px rgba(143, 216, 255, 0.4)' : 'none'};
 `
 
 const Timeline = styled.div`
-  padding: 18px 20px;
+  padding: 24px;
   display: grid;
   gap: 0;
 `
 
 const TimelineStep = styled.div<{ $variant: 'success' | 'primary' | 'danger' | 'muted' }>`
   display: grid;
-  grid-template-columns: 38px 1fr;
-  gap: 14px;
+  grid-template-columns: 40px 1fr;
+  gap: 16px;
   position: relative;
-  padding-bottom: 20px;
+  padding-bottom: 24px;
 
   &:not(:last-child)::before {
     content: '';
     position: absolute;
-    left: 18px;
-    top: 38px;
+    left: 19px;
+    top: 40px;
     bottom: 0;
     width: 2px;
-    background: ${({ theme, $variant }) =>
-      $variant === 'success' ? theme.colors.successMid :
-      $variant === 'primary' ? theme.colors.primaryMid :
-      $variant === 'danger' ? theme.colors.dangerMid :
-      theme.colors.border};
+    background: ${({ $variant }) =>
+      $variant === 'success' ? 'rgba(16, 185, 129, 0.2)' :
+      $variant === 'primary' ? 'rgba(143, 216, 255, 0.2)' :
+      $variant === 'danger' ? 'rgba(239, 68, 68, 0.2)' :
+      'rgba(255, 255, 255, 0.05)'};
   }
 
   &:last-child {
@@ -157,30 +163,32 @@ const TimelineStep = styled.div<{ $variant: 'success' | 'primary' | 'danger' | '
 `
 
 const StepIcon = styled.div<{ $variant: 'success' | 'primary' | 'danger' | 'muted' }>`
-  width: 38px;
-  height: 38px;
-  border-radius: ${({ theme }) => theme.radii.pill};
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${({ theme, $variant }) =>
-    $variant === 'success' ? theme.colors.successFaint :
-    $variant === 'primary' ? theme.colors.primaryFaint :
-    $variant === 'danger' ? theme.colors.dangerFaint :
-    theme.colors.bg};
-  border: 2px solid ${({ theme, $variant }) =>
-    $variant === 'success' ? theme.colors.success :
-    $variant === 'primary' ? theme.colors.primary :
-    $variant === 'danger' ? theme.colors.danger :
-    theme.colors.borderStrong};
-  color: ${({ theme, $variant }) =>
-    $variant === 'success' ? theme.colors.success :
-    $variant === 'primary' ? theme.colors.primary :
-    $variant === 'danger' ? theme.colors.danger :
-    theme.colors.textMuted};
+  background: ${({ $variant }) =>
+    $variant === 'success' ? 'rgba(16, 185, 129, 0.1)' :
+    $variant === 'primary' ? 'rgba(143, 216, 255, 0.1)' :
+    $variant === 'danger' ? 'rgba(239, 68, 68, 0.1)' :
+    'rgba(255, 255, 255, 0.03)'};
+  border: 2px solid ${({ $variant }) =>
+    $variant === 'success' ? '#10b981' :
+    $variant === 'primary' ? '#8fd8ff' :
+    $variant === 'danger' ? '#ef4444' :
+    'rgba(255, 255, 255, 0.1)'};
+  color: ${({ $variant }) =>
+    $variant === 'success' ? '#10b981' :
+    $variant === 'primary' ? '#8fd8ff' :
+    $variant === 'danger' ? '#ef4444' :
+    '#8b90a0'};
   position: relative;
   z-index: 1;
   flex-shrink: 0;
+  box-shadow: ${({ $variant }) =>
+    $variant !== 'muted' ? '0 0 12px rgba(143, 216, 255, 0.2)' : 'none'};
   
   svg {
     width: 18px;
@@ -202,37 +210,43 @@ const StepHeader = styled.div`
 `
 
 const StepTitle = styled.div`
-  font-size: ${({ theme }) => theme.font.md};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e2e2;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 `
 
 const StepBadge = styled.span<{ $variant: 'success' | 'primary' | 'danger' | 'muted' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.bold};
-  background: ${({ theme, $variant }) =>
-    $variant === 'success' ? theme.colors.success :
-    $variant === 'primary' ? theme.colors.primary :
-    $variant === 'danger' ? theme.colors.danger :
-    theme.colors.borderStrong};
-  color: white;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  background: ${({ $variant }) =>
+    $variant === 'success' ? '#10b981' :
+    $variant === 'primary' ? '#8fd8ff' :
+    $variant === 'danger' ? '#ef4444' :
+    'rgba(255, 255, 255, 0.1)'};
+  color: ${({ $variant }) =>
+    $variant === 'muted' ? '#e2e2e2' : '#131313'};
+  box-shadow: ${({ $variant }) =>
+    $variant !== 'muted' ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'};
 `
 
 const StepMeta = styled.div`
-  font-size: ${({ theme }) => theme.font.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin-bottom: 10px;
-  line-height: 1.4;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #8b90a0;
+  margin-bottom: 12px;
+  line-height: 1.5;
 `
 
 const MilestoneGrid = styled.div`
@@ -281,7 +295,7 @@ const MilestoneStatusBadge = styled.div<{ $status: string }>`
   align-items: center;
   padding: 4px 10px;
   border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: 10px;
+  font-size: 8px;
   font-weight: ${({ theme }) => theme.weights.bold};
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -320,10 +334,11 @@ const TasksList = styled.div`
 const TaskCard = styled.button<{ $active?: boolean }>`
   width: 100%;
   border: none;
-  background: ${({ theme, $active }) => $active ? theme.colors.primaryFaint : theme.colors.surface};
-  border: 1px solid ${({ theme, $active }) => $active ? theme.colors.primary : theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  padding: 10px 12px;
+  background: ${({ $active }) => $active ? 'rgba(143, 216, 255, 0.1)' : 'rgba(25, 25, 25, 0.4)'};
+  backdrop-filter: blur(8px);
+  border: 1px solid ${({ $active }) => $active ? 'rgba(143, 216, 255, 0.4)' : 'rgba(255, 255, 255, 0.05)'};
+  border-radius: 8px;
+  padding: 12px 14px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -336,32 +351,36 @@ const TaskCard = styled.button<{ $active?: boolean }>`
     left: 0;
     width: 3px;
     height: 100%;
-    background: ${({ theme }) => theme.colors.primary};
+    background: #8fd8ff;
     opacity: ${({ $active }) => $active ? 1 : 0};
     transition: opacity 0.15s ease;
+    border-radius: 8px 0 0 8px;
+    box-shadow: ${({ $active }) => $active ? '0 0 8px rgba(143, 216, 255, 0.4)' : 'none'};
   }
   
   &:hover {
-    background: ${({ theme }) => theme.colors.primaryFaint};
-    border-color: ${({ theme }) => theme.colors.primary};
+    background: rgba(143, 216, 255, 0.1);
+    border-color: rgba(143, 216, 255, 0.3);
     transform: translateX(2px);
     &::before { opacity: 1; }
   }
 `
 
 const TaskCardTitle = styled.div`
-  font-size: ${({ theme }) => theme.font.sm};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
-  margin-bottom: 3px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e2e2;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 6px;
 `
 
 const TaskCardMeta = styled.div`
-  font-size: ${({ theme }) => theme.font.xs};
-  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: #8b90a0;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -421,7 +440,7 @@ const DetailInfoItem = styled.div`
 `
 
 const DetailInfoLabel = styled.span`
-  font-size: 10px;
+  font-size: 8px;
   color: ${({ theme }) => theme.colors.textMuted};
   font-weight: ${({ theme }) => theme.weights.semibold};
   text-transform: uppercase;
@@ -879,31 +898,32 @@ export function ClientProjectPage() {
           <PanelHead>
             <PanelTitle><ClipboardList />Briefing do Projeto</PanelTitle>
           </PanelHead>
-          <div style={{ padding: '16px 20px', display: 'grid', gap: 16 }}>
+          <div style={{ padding: '20px 24px', display: 'grid', gap: 20 }}>
             {project.briefing && (
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#8b90a0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif" }}>
                   Contexto
                 </div>
-                <div style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: '13px', color: '#e2e2e2', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: "'Inter', sans-serif" }}>
                   {project.briefing}
                 </div>
               </div>
             )}
             {project.objectives && project.objectives.length > 0 && (
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#8b90a0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif" }}>
                   Objetivos
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {project.objectives.map((obj, idx) => (
                     <div key={idx} style={{ 
-                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
-                      color: 'white',
+                      background: 'linear-gradient(135deg, #8fd8ff, #6366f1)', 
+                      color: '#131313',
                       padding: '6px 12px', 
                       borderRadius: 8, 
-                      fontSize: 13,
-                      fontWeight: 500
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "'Inter', sans-serif"
                     }}>
                       {obj}
                     </div>
@@ -911,23 +931,23 @@ export function ClientProjectPage() {
                 </div>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               {project.targetAudience && (
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#8b90a0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif" }}>
                     Público-alvo
                   </div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>
+                  <div style={{ fontSize: '13px', color: '#e2e2e2', fontFamily: "'Inter', sans-serif" }}>
                     {project.targetAudience}
                   </div>
                 </div>
               )}
               {project.budget && (
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#8b90a0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif" }}>
                     Orçamento
                   </div>
-                  <div style={{ fontSize: '18px', color: '#10b981', fontWeight: 700 }}>
+                  <div style={{ fontSize: '20px', color: '#10b981', fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>
                     R$ {project.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>

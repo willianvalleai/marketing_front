@@ -5,40 +5,52 @@ import type { Task, TaskStatus } from '@/shared/types'
 import { TaskCard } from './TaskCard'
 
 const Col = styled.div`
-  flex: 1;
-  min-width: 270px;
-  max-width: 340px;
+  flex: 0 0 320px;
+  min-width: 320px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 `
 
 const ColHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 0 8px;
 `
 
 const ColTitle = styled.span<{ $status: TaskStatus }>`
-  font-size: ${({ theme }) => theme.font.sm};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  color: #e2e2e2;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  line-height: 14.4px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   &::before {
     content: '';
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    background: ${({ $status, theme }) =>
-      $status === 'TODO' ? theme.colors.borderStrong :
-      $status === 'IN_PROGRESS' ? theme.colors.primary :
-      $status === 'INTERNAL_REVIEW' ? '#f59e0b' :
-      $status === 'CHANGES_REQUESTED' ? theme.colors.danger :
-      $status === 'CLIENT_REVIEW' ? '#8b5cf6' :
-      theme.colors.success};
+    border-radius: 9999px;
+    flex-shrink: 0;
+    box-shadow: ${({ $status }) =>
+      $status === 'TODO' ? '0px 0px 8px 0px rgba(173, 198, 255, 0.6)' :
+      $status === 'IN_PROGRESS' ? '0px 0px 8px 0px rgba(143, 216, 255, 0.6)' :
+      $status === 'INTERNAL_REVIEW' ? '0px 0px 8px 0px rgba(194, 193, 255, 0.6)' :
+      $status === 'CHANGES_REQUESTED' ? '0px 0px 8px 0px rgba(255, 180, 171, 0.6)' :
+      $status === 'CLIENT_REVIEW' ? '0px 0px 8px 0px rgba(194, 193, 255, 0.6)' :
+      '0px 0px 8px 0px rgba(16, 185, 129, 0.6)'};
+    background: ${({ $status }) =>
+      $status === 'TODO' ? '#adc6ff' :
+      $status === 'IN_PROGRESS' ? '#8fd8ff' :
+      $status === 'INTERNAL_REVIEW' ? '#c2c1ff' :
+      $status === 'CHANGES_REQUESTED' ? '#ffb4ab' :
+      $status === 'CLIENT_REVIEW' ? '#c2c1ff' :
+      '#10b981'};
   }
 `
 
@@ -46,27 +58,26 @@ const ColCount = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  background: ${({ theme }) => theme.colors.bg};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textLight};
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #2a2a2a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 18px;
 `
 
 const DropArea = styled.div<{ $over: boolean }>`
   flex: 1;
   min-height: 100px;
-  border-radius: ${({ theme }) => theme.radii.xl};
-  border: 2px dashed ${({ $over, theme }) => $over ? theme.colors.primary : theme.colors.border};
-  background: ${({ $over, theme }) => $over ? theme.colors.primaryFaint : theme.colors.bg};
-  padding: 10px;
+  border-radius: 12px;
+  border: 2px dashed ${({ $over }) => $over ? '#8fd8ff' : 'transparent'};
+  background: transparent;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   transition: border-color 0.15s, background 0.15s;
 `
 

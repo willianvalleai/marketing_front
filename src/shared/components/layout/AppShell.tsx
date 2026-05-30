@@ -48,12 +48,13 @@ const LogoMark = styled.div`
   width: 32px;
   height: 32px;
   border-radius: ${({ theme }) => theme.radii.md};
-  background: ${({ theme }) => theme.colors.primary};
+  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.primaryHover});
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  svg { color: white; width: 16px; height: 16px; }
+  box-shadow: 0 0 20px rgba(143, 216, 255, 0.3);
+  svg { color: #131313; width: 16px; height: 16px; }
 `
 
 const LogoName = styled.span`
@@ -76,7 +77,7 @@ const SectionLabel = styled.div`
   font-size: 10.5px;
   font-weight: ${({ theme }) => theme.weights.semibold};
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.12em;
   color: ${({ theme }) => theme.colors.textMuted};
   padding: 10px 10px 4px;
 `
@@ -96,7 +97,7 @@ const NavItem = styled(NavLink)`
   svg { width: 17px; height: 17px; flex-shrink: 0; }
 
   &:hover {
-    background: ${({ theme }) => theme.colors.bg};
+    background: rgba(255, 255, 255, 0.05);
     color: ${({ theme }) => theme.colors.textDark};
   }
 
@@ -113,6 +114,7 @@ const NavItem = styled(NavLink)`
       width: 3px;
       border-radius: 0 3px 3px 0;
       background: ${({ theme }) => theme.colors.primary};
+      box-shadow: 0 0 8px ${({ theme }) => theme.colors.primary};
     }
   }
 `
@@ -152,6 +154,7 @@ const UserAvatar = styled.div`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 2px solid ${({ theme }) => theme.colors.border};
 `
 
 const UserMeta = styled.div`
@@ -206,7 +209,8 @@ const Topbar = styled.header`
   display: flex;
   align-items: center;
   gap: 12px;
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `
 
@@ -245,7 +249,7 @@ const TopbarRight = styled.div`
 const Content = styled.main`
   flex: 1;
   overflow-y: auto;
-  padding: 28px 32px;
+  padding: 32px 28px;
 `
 
 /* ── Route titles ─────────────────────────────────────── */

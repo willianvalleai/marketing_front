@@ -14,10 +14,10 @@ export const Badge = styled.span<{ $variant?: 'success' | 'warning' | 'danger' |
     const map = {
       success: css`background: ${theme.colors.successMid}; color: ${theme.colors.successText};`,
       warning: css`background: ${theme.colors.warningMid}; color: ${theme.colors.warningText};`,
-      danger: css`background: ${theme.colors.dangerMid}; color: ${theme.colors.dangerText};`,
+      danger: css`background: ${theme.colors.dangerMid}; color: ${theme.colors.dangerText}; border: 1px solid ${theme.colors.borderStrong};`,
       info: css`background: ${theme.colors.infoMid}; color: ${theme.colors.infoText};`,
       purple: css`background: ${theme.colors.primaryMid}; color: ${theme.colors.primary};`,
-      default: css`background: ${theme.colors.bg}; color: ${theme.colors.textLight}; border: 1px solid ${theme.colors.border};`,
+      default: css`background: ${theme.colors.surfaceSolid}; color: ${theme.colors.textLight}; border: 1px solid ${theme.colors.borderStrong};`,
     }
     return map[$variant]
   }}

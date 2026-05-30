@@ -1,61 +1,71 @@
 export const theme = {
   colors: {
     // Backgrounds
-    bg: '#f0f2f5',
-    surface: '#ffffff',
-    surfaceHover: '#fafafa',
-    sidebar: '#ffffff',
-    sidebarActive: '#f5f3ff',
-    sidebarActiveBorder: '#7c3aed',
+    bg: '#131313',
+    bgSecondary: '#1a1a1a',
+    surface: 'rgba(25, 25, 25, 0.4)',
+    surfaceHover: 'rgba(35, 35, 35, 0.5)',
+    surfaceSolid: '#2a2a2a',
+    sidebar: '#131313',
+    sidebarActive: 'rgba(143, 216, 255, 0.1)',
+    sidebarActiveBorder: '#8fd8ff',
 
     // Borders
-    border: '#e4e4e7',
-    borderStrong: '#d1d5db',
+    border: 'rgba(255, 255, 255, 0.05)',
+    borderStrong: 'rgba(65, 71, 85, 0.2)',
+    borderMedium: 'rgba(255, 255, 255, 0.1)',
 
     // Text
-    text: '#374151',
-    textDark: '#111827',
-    textLight: '#6b7280',
-    textMuted: '#9ca3af',
+    text: '#8b90a0',
+    textDark: '#e2e2e2',
+    textLight: '#8b90a0',
+    textMuted: '#6b7280',
     textWhite: '#ffffff',
 
-    // Brand (Violet)
-    primary: '#7c3aed',
-    primaryHover: '#6d28d9',
-    primaryLight: '#a78bfa',
-    primaryFaint: '#f5f3ff',
-    primaryMid: '#ede9fe',
+    // Brand (Cyan from Figma)
+    primary: '#8fd8ff',
+    primaryHover: '#adc6ff',
+    primaryLight: '#c2c1ff',
+    primaryFaint: 'rgba(143, 216, 255, 0.1)',
+    primaryMid: 'rgba(143, 216, 255, 0.2)',
 
     // Status
-    success: '#059669',
-    successHover: '#047857',
-    successFaint: '#ecfdf5',
-    successMid: '#d1fae5',
-    successText: '#065f46',
+    success: '#10b981',
+    successHover: '#059669',
+    successFaint: 'rgba(16, 185, 129, 0.1)',
+    successMid: 'rgba(16, 185, 129, 0.2)',
+    successText: '#6ee7b7',
 
-    danger: '#dc2626',
-    dangerHover: '#b91c1c',
-    dangerFaint: '#fef2f2',
-    dangerMid: '#fee2e2',
-    dangerText: '#991b1b',
+    danger: '#ffb4ab',
+    dangerHover: '#ff9b8f',
+    dangerFaint: 'rgba(147, 0, 10, 0.1)',
+    dangerMid: 'rgba(147, 0, 10, 0.2)',
+    dangerText: '#ffb4ab',
 
-    warning: '#d97706',
-    warningHover: '#b45309',
-    warningFaint: '#fffbeb',
-    warningMid: '#fef3c7',
-    warningText: '#92400e',
+    warning: '#f59e0b',
+    warningHover: '#d97706',
+    warningFaint: 'rgba(245, 158, 11, 0.1)',
+    warningMid: 'rgba(245, 158, 11, 0.2)',
+    warningText: '#fbbf24',
 
-    info: '#2563eb',
-    infoFaint: '#eff6ff',
-    infoMid: '#dbeafe',
-    infoText: '#1e40af',
+    info: '#adc6ff',
+    infoFaint: 'rgba(173, 198, 255, 0.1)',
+    infoMid: 'rgba(173, 198, 255, 0.2)',
+    infoText: '#adc6ff',
 
     // Extras (legado, não remover)
-    panel: '#ffffff',
-    panel2: '#f9fafb',
-    muted: '#9ca3af',
+    panel: 'rgba(25, 25, 25, 0.4)',
+    panel2: '#1a1a1a',
+    muted: '#8b90a0',
     mutedDark: '#6b7280',
     successLight: '#6ee7b7',
+
+    // Kanban specific
+    kanbanTodo: '#adc6ff',
+    kanbanInProgress: '#8fd8ff',
+    kanbanReview: '#c2c1ff',
+    kanbanChanges: '#ffb4ab',
+    kanbanDone: '#10b981',
   },
   radii: {
     xs: '4px',
@@ -87,14 +97,14 @@ export const theme = {
     xxxxl: 48,
   },
   font: {
-    xs: '0.75rem',
-    sm: '0.8125rem',
-    md: '0.9375rem',
-    lg: '1.0625rem',
-    xl: '1.25rem',
-    xxl: '1.5rem',
-    xxxl: '1.875rem',
-    xxxxl: '2.25rem',
+    xs: '0.625rem',     // 10px (era 11px)
+    sm: '0.6875rem',    // 11px (era 12px)
+    md: '0.75rem',      // 12px (era 13px)
+    lg: '0.8125rem',    // 13px (era 15px)
+    xl: '0.9375rem',    // 15px (era 17px)
+    xxl: '1.0625rem',   // 17px (era 20px)
+    xxxl: '1.25rem',    // 20px (era 24px)
+    xxxxl: '1.5rem',    // 24px (era 30px)
   },
   weights: {
     normal: 400,

@@ -7,18 +7,18 @@ import { KanbanColumn } from './KanbanColumn'
 
 const Board = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.space.lg}px;
+  gap: 24px;
   overflow-x: auto;
   padding-bottom: 8px;
 `
 
 const columns: Array<{ status: TaskStatus; title: string }> = [
-  { status: 'TODO', title: 'A Fazer' },
-  { status: 'IN_PROGRESS', title: 'Em Progresso' },
-  { status: 'INTERNAL_REVIEW', title: 'Revisão Interna' },
-  { status: 'CHANGES_REQUESTED', title: 'Mudanças Solicitadas' },
-  { status: 'CLIENT_REVIEW', title: 'Revisão do Cliente' },
-  { status: 'DONE', title: 'Concluído' },
+  { status: 'TODO', title: 'TO DO' },
+  { status: 'IN_PROGRESS', title: 'IN PROGRESS' },
+  { status: 'INTERNAL_REVIEW', title: 'INTERNAL REVIEW' },
+  { status: 'CHANGES_REQUESTED', title: 'CHANGES REQUESTED' },
+  { status: 'CLIENT_REVIEW', title: 'CLIENT REVIEW' },
+  { status: 'DONE', title: 'DONE' },
 ]
 
 export function KanbanBoard({

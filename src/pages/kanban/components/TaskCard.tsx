@@ -3,94 +3,190 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 import styled from 'styled-components'
 import type { Task } from '@/shared/types'
-import { GripVertical, Clock, AlertTriangle } from 'lucide-react'
+import { GripVertical, Clock, AlertTriangle, MessageSquare, Paperclip } from 'lucide-react'
 
 const Wrap = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  padding: 12px 14px;
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 17px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   cursor: grab;
-  transition: box-shadow 0.15s;
-  &:hover { box-shadow: ${({ theme }) => theme.shadow.md}; }
+  transition: box-shadow 0.15s, border-color 0.15s;
+  overflow: clip;
+  &:hover { 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
 `
 
 const CardTop = styled.div`
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
+`
+
+const CardTopLeft = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+`
+
+const LabelBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 15px;
+  text-transform: uppercase;
+  background: rgba(0, 193, 253, 0.2);
+  border: 1px solid rgba(143, 216, 255, 0.2);
+  color: #8fd8ff;
+  white-space: nowrap;
 `
 
 const GripIcon = styled.div`
   margin-top: 2px;
   flex-shrink: 0;
-  color: ${({ theme }) => theme.colors.textMuted};
+  color: #8b90a0;
   opacity: 0.4;
   svg { width: 14px; height: 14px; }
 `
 
 const Title = styled.div`
   flex: 1;
-  font-size: ${({ theme }) => theme.font.sm};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
-  line-height: 1.4;
+  min-width: 0;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #e2e2e2;
+  line-height: 24px;
 `
 
 const Meta = styled.div`
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 4px 0 0 0;
 `
 
 const PriorityChip = styled.span<{ $p: 'HIGH' | 'MEDIUM' | 'LOW' }>`
-  padding: 2px 7px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: 10.5px;
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  background: ${({ $p, theme }) =>
-    $p === 'HIGH' ? theme.colors.dangerMid :
-    $p === 'MEDIUM' ? theme.colors.warningMid :
-    theme.colors.successMid};
-  color: ${({ $p, theme }) =>
-    $p === 'HIGH' ? theme.colors.dangerText :
-    $p === 'MEDIUM' ? theme.colors.warningText :
-    theme.colors.successText};
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 16.5px;
+  border: 1px solid rgba(65, 71, 85, 0.2);
+  background: ${({ $p }) =>
+    $p === 'HIGH' ? 'rgba(147, 0, 10, 0.2)' :
+    $p === 'MEDIUM' ? '#353535' :
+    '#353535'};
+  color: ${({ $p }) =>
+    $p === 'HIGH' ? '#ffb4ab' :
+    $p === 'MEDIUM' ? '#c2c1ff' :
+    '#8b90a0'};
 `
 
 const DueDateText = styled.span`
-  font-size: ${({ theme }) => theme.font.xs};
-  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 16.5px;
+  color: #8b90a0;
 `
 
 const ContextText = styled.span`
-  font-size: 10.5px;
-  color: ${({ theme }) => theme.colors.textMuted};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.bg};
-  padding: 2px 7px;
-  border-radius: ${({ theme }) => theme.radii.pill};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 15px;
+  color: #8b90a0;
+  border: 1px solid rgba(65, 71, 85, 0.2);
+  background: #353535;
+  padding: 3px 9px;
+  border-radius: 6px;
 `
 
 const DueAlertBadge = styled.span<{ $variant: 'warning' | 'danger' }>`
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 7px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: 10.5px;
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  background: ${({ $variant, theme }) =>
-    $variant === 'danger' ? theme.colors.dangerMid : theme.colors.warningMid};
-  color: ${({ $variant, theme }) =>
-    $variant === 'danger' ? theme.colors.dangerText : theme.colors.warningText};
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 16.5px;
+  border: 1px solid rgba(255, 180, 171, 0.2);
+  background: rgba(147, 0, 10, 0.2);
+  color: #ffb4ab;
   svg {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
+  }
+`
+
+const CardFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 13px;
+  border-top: 1px solid rgba(65, 71, 85, 0.1);
+`
+
+const Assignees = styled.div`
+  display: flex;
+  align-items: center;
+`
+
+const Avatar = styled.div<{ $index: number }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: 2px solid #131313;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  color: white;
+  margin-left: ${({ $index }) => $index > 0 ? '-8px' : '0'};
+  position: relative;
+  z-index: ${({ $index }) => 10 - $index};
+`
+
+const CardStats = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`
+
+const Stat = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 18px;
+  
+  svg {
+    width: 12px;
+    height: 12px;
   }
 `
 
@@ -172,23 +268,49 @@ export function TaskCard({
         {...listeners}
       >
         <CardTop>
-          <GripIcon aria-hidden="true">
-            <GripVertical />
-          </GripIcon>
-          <Title>{task.title}</Title>
+          {task.labels && task.labels.length > 0 && (
+            <LabelBadge>{task.labels[0]}</LabelBadge>
+          )}
         </CardTop>
+        
+        <Title>{task.title}</Title>
+        
         <Meta>
-          <PriorityChip $p={task.priority as 'HIGH' | 'MEDIUM' | 'LOW'}>{task.priority}</PriorityChip>
+          <PriorityChip $p={task.priority as 'HIGH' | 'MEDIUM' | 'LOW'}>
+            {task.priority === 'HIGH' ? 'High' : task.priority === 'MEDIUM' ? 'Medium' : 'Low Priority'}
+          </PriorityChip>
           {dueAlert && (
             <DueAlertBadge $variant={dueAlert.variant}>
               <dueAlert.icon />
               {dueAlert.label}
             </DueAlertBadge>
           )}
-          {task.dueDate && <DueDateText>{new Date(task.dueDate).toLocaleDateString('pt-BR')}</DueDateText>}
-          {clientName && <ContextText>{clientName}</ContextText>}
-          {projectTitle && <ContextText>{projectTitle}</ContextText>}
         </Meta>
+
+        <CardFooter>
+          <Assignees>
+            {task.assignees && task.assignees.length > 0 ? (
+              task.assignees.slice(0, 3).map((assignee, idx) => (
+                <Avatar key={assignee.id} $index={idx} title={assignee.name}>
+                  {assignee.name.charAt(0).toUpperCase()}
+                </Avatar>
+              ))
+            ) : (
+              <Avatar $index={0}>?</Avatar>
+            )}
+          </Assignees>
+          
+          <CardStats>
+            <Stat>
+              <MessageSquare />
+              {task.comments?.length ?? 0}
+            </Stat>
+            <Stat>
+              <Paperclip />
+              {task.attachments?.length ?? 0}
+            </Stat>
+          </CardStats>
+        </CardFooter>
       </Wrap>
     </div>
   )

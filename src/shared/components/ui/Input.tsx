@@ -6,7 +6,7 @@ const inputBase = `
   border: 1.5px solid;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
-  background: #fff;
+  background: rgba(35, 35, 35, 0.5);
 `
 
 export const Input = styled.input`
@@ -18,12 +18,12 @@ export const Input = styled.input`
   height: 38px;
 
   &::placeholder { color: ${({ theme }) => theme.colors.textMuted}; }
-  &:hover:not(:disabled) { border-color: ${({ theme }) => theme.colors.borderStrong}; }
+  &:hover:not(:disabled) { border-color: ${({ theme }) => theme.colors.borderMedium}; }
   &:focus {
     border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: ${({ theme }) => theme.shadow.focus};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primaryFaint};
   }
-  &:disabled { opacity: 0.55; cursor: not-allowed; background: ${({ theme }) => theme.colors.bg}; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; background: ${({ theme }) => theme.colors.surfaceSolid}; }
 `
 
 export const Textarea = styled.textarea`
@@ -37,10 +37,10 @@ export const Textarea = styled.textarea`
   line-height: 1.6;
 
   &::placeholder { color: ${({ theme }) => theme.colors.textMuted}; }
-  &:hover:not(:disabled) { border-color: ${({ theme }) => theme.colors.borderStrong}; }
+  &:hover:not(:disabled) { border-color: ${({ theme }) => theme.colors.borderMedium}; }
   &:focus {
     border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: ${({ theme }) => theme.shadow.focus};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primaryFaint};
   }
-  &:disabled { opacity: 0.55; cursor: not-allowed; background: ${({ theme }) => theme.colors.bg}; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; background: ${({ theme }) => theme.colors.surfaceSolid}; }
 `

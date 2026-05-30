@@ -8,39 +8,97 @@ import { Input } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
 import { Button } from '@/shared/components/ui/Button'
 import { Modal } from '@/shared/components/ui/Modal'
-import { UserPlus, Trash2, ShieldCheck, Briefcase, UserCircle2, Mail, Phone, Building2, FileText, CheckCircle2, XCircle } from 'lucide-react'
+import { UserPlus, Trash2, ShieldCheck, Briefcase, UserCircle2, Mail, Phone, Building2, FileText, CheckCircle2, XCircle, Filter, Download, Edit2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
+  padding: 0 4px;
 `
 
 const PageHeader = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
   flex-wrap: wrap;
 `
 
 const PageTitleGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  flex: 1;
 `
 
 const PageTitle = styled.h1`
   margin: 0;
-  font-size: ${({ theme }) => theme.font.xl};
-  font-weight: ${({ theme }) => theme.weights.bold};
-  color: ${({ theme }) => theme.colors.textDark};
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #e2e2e2;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 `
 
 const PageSub = styled.p`
   margin: 0;
-  font-size: ${({ theme }) => theme.font.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.6;
+  max-width: 600px;
+`
+
+const UserCount = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.6;
+  white-space: nowrap;
+`
+
+const HeaderRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+`
+
+const NewUserBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #8fd8ff, #6366f1);
+  color: #131313;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(143, 216, 255, 0.25);
+  
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(143, 216, 255, 0.35);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 `
 
 const ContentSection = styled.div`
@@ -49,151 +107,313 @@ const ContentSection = styled.div`
   gap: 0;
 `
 
-const ListPanel = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.xl};
-  box-shadow: ${({ theme }) => theme.shadow.sm};
+const TablePanel = styled.div`
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   overflow: hidden;
 `
 
-const ListHead = styled.div`
-  padding: 16px 20px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+const TableHead = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
 `
 
-const ListTitle = styled.h3`
+const TableTitle = styled.h3`
   margin: 0;
-  font-size: ${({ theme }) => theme.font.md};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: #e2e2e2;
+  line-height: 1.5;
 `
 
-const CountBadge = styled.span`
-  padding: 2px 8px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  background: ${({ theme }) => theme.colors.primaryMid};
-  color: ${({ theme }) => theme.colors.primary};
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-`
-
-const UserItem = styled.div`
+const TableActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 20px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  transition: background 0.12s;
-  &:last-child { border-bottom: none; }
-  &:hover { background: ${({ theme }) => theme.colors.bg}; }
+  gap: 8px;
 `
 
-const UserAvatarBox = styled.div<{ $role: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: ${({ theme }) => theme.radii.pill};
+const IconButton = styled.button`
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: ${({ theme }) => theme.weights.bold};
-  font-size: ${({ theme }) => theme.font.sm};
-  flex-shrink: 0;
-  background: ${({ $role, theme }) =>
-    $role === 'ADMIN' ? theme.colors.dangerMid :
-    $role === 'COLABORADOR' ? theme.colors.primaryMid :
-    theme.colors.successMid};
-  color: ${({ $role, theme }) =>
-    $role === 'ADMIN' ? theme.colors.danger :
-    $role === 'COLABORADOR' ? theme.colors.primary :
-    theme.colors.success};
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: #8b90a0;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e2e2;
+  }
 `
 
-const UserDetails = styled.div`
-  flex: 1;
+const Table = styled.div`
+  width: 100%;
+`
+
+const TableHeaderRow = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 120px;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 18, 0.5);
+`
+
+const TableHeaderCell = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  color: #8b90a0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+`
+
+const TableRow = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 120px;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+  align-items: center;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+`
+
+const UserCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`
+
+const UserAvatarBox = styled.div<{ $role: string }>`
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: ${({ $role }) =>
+    $role === 'ADMIN' ? 'linear-gradient(135deg, #8fd8ff, #6366f1)' :
+    $role === 'COLABORADOR' ? 'linear-gradient(135deg, #8fd8ff, #3b82f6)' :
+    'linear-gradient(135deg, #fbbf24, #f59e0b)'};
+  color: #131313;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+`
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 `
 
 const UserNameText = styled.div`
-  font-size: ${({ theme }) => theme.font.sm};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: #e2e2e2;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `
 
 const UserEmail = styled.div`
-  font-size: ${({ theme }) => theme.font.xs};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin-top: 2px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `
+
+const RoleCell = styled.div``
 
 const RoleBadge = styled.span<{ $role: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  background: ${({ $role, theme }) =>
-    $role === 'ADMIN' ? theme.colors.dangerMid :
-    $role === 'COLABORADOR' ? theme.colors.primaryMid :
-    theme.colors.successMid};
-  color: ${({ $role, theme }) =>
-    $role === 'ADMIN' ? theme.colors.danger :
-    $role === 'COLABORADOR' ? theme.colors.primary :
-    theme.colors.success};
-  svg { width: 11px; height: 11px; }
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  background: ${({ $role }) =>
+    $role === 'ADMIN' ? 'rgba(143, 216, 255, 0.15)' :
+    $role === 'COLABORADOR' ? 'rgba(59, 130, 246, 0.15)' :
+    'rgba(251, 191, 36, 0.15)'};
+  color: ${({ $role }) =>
+    $role === 'ADMIN' ? '#8fd8ff' :
+    $role === 'COLABORADOR' ? '#60a5fa' :
+    '#fbbf24'};
+  border: 1px solid ${({ $role }) =>
+    $role === 'ADMIN' ? 'rgba(143, 216, 255, 0.2)' :
+    $role === 'COLABORADOR' ? 'rgba(59, 130, 246, 0.2)' :
+    'rgba(251, 191, 36, 0.2)'};
 `
 
-const RemoveBtn = styled.button`
+const StatusCell = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: ${({ theme }) => theme.radii.sm};
-  border: 1px solid transparent;
+  gap: 8px;
+`
+
+const StatusDot = styled.div<{ $status: 'ativo' | 'offline' | 'pendente' }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: ${({ $status }) =>
+    $status === 'ativo' ? '#10b981' :
+    $status === 'pendente' ? '#f59e0b' :
+    'transparent'};
+  box-shadow: ${({ $status }) =>
+    $status === 'ativo' ? '0 0 8px rgba(16, 185, 129, 0.4)' :
+    $status === 'pendente' ? '0 0 8px rgba(245, 158, 11, 0.4)' :
+    'none'};
+`
+
+const StatusText = styled.span<{ $status: 'ativo' | 'offline' | 'pendente' }>`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: ${({ $status }) =>
+    $status === 'ativo' ? '#10b981' :
+    $status === 'pendente' ? '#f59e0b' :
+    '#8b90a0'};
+`
+
+const ActionsCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+`
+
+const ActionIconBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.medium};
-  color: ${({ theme }) => theme.colors.textMuted};
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: #8b90a0;
   cursor: pointer;
   transition: all 0.15s;
-  svg { width: 13px; height: 13px; }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+  
   &:hover {
-    background: ${({ theme }) => theme.colors.dangerFaint};
-    border-color: ${({ theme }) => theme.colors.dangerMid};
-    color: ${({ theme }) => theme.colors.danger};
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e2e2;
+  }
+  
+  &.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
   }
 `
 
-const EditBtn = styled.button`
+const TableFooter = styled.div`
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: ${({ theme }) => theme.radii.sm};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.bg};
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.medium};
-  color: ${({ theme }) => theme.colors.textLight};
+  justify-content: space-between;
+`
+
+const FooterText = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 1.5;
+`
+
+const Pagination = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`
+
+const PaginationBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: #8b90a0;
   cursor: pointer;
   transition: all 0.15s;
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.primaryMid};
-    background: ${({ theme }) => theme.colors.primaryFaint};
-    color: ${({ theme }) => theme.colors.textDark};
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e2e2;
+  }
+  
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 `
 
 const Empty = styled.div`
-  padding: 40px;
+  padding: 60px 40px;
   text-align: center;
-  font-size: ${({ theme }) => theme.font.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  color: #8b90a0;
 `
 
 const EditModalContent = styled.div`
@@ -421,6 +641,14 @@ export function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const totalPages = Math.ceil(users.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentUsers = users.slice(startIndex, endIndex)
+  
   // Create modal state
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -520,60 +748,147 @@ export function UsersPage() {
     }
   }
 
+  const handleDelete = async (u: User) => {
+    if (!confirm(`Remover ${u.name}?`)) return
+    await usersService.remove(u.id)
+    await load()
+  }
+
+  // Determine user status
+  const getUserStatus = (u: User): 'ativo' | 'offline' | 'pendente' => {
+    if (!u.isActive) return 'pendente'
+    // You can add more logic here based on lastLogin or other fields
+    return 'ativo'
+  }
+
+  const getStatusLabel = (status: 'ativo' | 'offline' | 'pendente') => {
+    if (status === 'ativo') return 'Ativo'
+    if (status === 'pendente') return 'Pendente'
+    return 'Offline'
+  }
+
   if (!isAdmin) return <Navigate to="/home" replace />
 
   return (
     <PageContainer>
       <PageHeader>
         <PageTitleGroup>
-          <PageTitle>Usuários</PageTitle>
-          <PageSub>{users.length} usuário{users.length !== 1 ? 's' : ''} no total</PageSub>
+          <PageTitle>Gerenciamento de Usuários</PageTitle>
+          <PageSub>Controle acessos, permissões e monitore a atividade dos colaboradores da plataforma.</PageSub>
         </PageTitleGroup>
-        <Button data-variant="primary" data-size="lg" onClick={openCreateModal}>
-          <UserPlus />
-          Novo Usuário
-        </Button>
+        <HeaderRight>
+          <UserCount>Total de Usuários: {users.length}</UserCount>
+          <NewUserBtn onClick={openCreateModal}>
+            <UserPlus />
+            Novo Usuário
+          </NewUserBtn>
+        </HeaderRight>
       </PageHeader>
 
       <ContentSection>
-        <ListPanel>
-          <ListHead>
-            <ListTitle>Todos os usuários</ListTitle>
-            <CountBadge>{users.length}</CountBadge>
-          </ListHead>
+        <TablePanel>
+          <TableHead>
+            <TableTitle>Lista de Usuários</TableTitle>
+            <TableActions>
+              <IconButton type="button" title="Filtrar">
+                <Filter />
+              </IconButton>
+              <IconButton type="button" title="Exportar">
+                <Download />
+              </IconButton>
+            </TableActions>
+          </TableHead>
+          
           {loading ? (
             <Empty>Carregando…</Empty>
           ) : users.length === 0 ? (
             <Empty>Nenhum usuário cadastrado.</Empty>
           ) : (
-            users.map((u) => (
-              <UserItem key={u.id}>
-                <UserAvatarBox $role={u.role}>
-                  {u.name.charAt(0).toUpperCase()}
-                </UserAvatarBox>
-                <UserDetails>
-                  <UserNameText>{u.name}</UserNameText>
-                  <UserEmail>{u.email}</UserEmail>
-                </UserDetails>
-                <RoleBadge $role={u.role}>{roleIcon(u.role)}{u.role}</RoleBadge>
-                {u.role !== 'ADMIN' && (
-                  <EditBtn type="button" onClick={() => openEdit(u)}>
-                    Editar
-                  </EditBtn>
-                )}
-                {u.role !== 'ADMIN' && (
-                  <RemoveBtn onClick={async () => {
-                    if (!confirm(`Remover ${u.name}?`)) return
-                    await usersService.remove(u.id)
-                    await load()
-                  }}>
-                    <Trash2 />Remover
-                  </RemoveBtn>
-                )}
-              </UserItem>
-            ))
+            <>
+              <Table>
+                <TableHeaderRow>
+                  <TableHeaderCell>Usuário</TableHeaderCell>
+                  <TableHeaderCell>Role</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell>Ações</TableHeaderCell>
+                </TableHeaderRow>
+                {currentUsers.map((u) => {
+                  const status = getUserStatus(u)
+                  return (
+                    <TableRow key={u.id}>
+                      <UserCell>
+                        <UserAvatarBox $role={u.role}>
+                          {u.name.charAt(0).toUpperCase()}
+                        </UserAvatarBox>
+                        <UserInfo>
+                          <UserNameText>{u.name}</UserNameText>
+                          <UserEmail>{u.email}</UserEmail>
+                        </UserInfo>
+                      </UserCell>
+                      
+                      <RoleCell>
+                        <RoleBadge $role={u.role}>
+                          {u.role}
+                        </RoleBadge>
+                      </RoleCell>
+                      
+                      <StatusCell>
+                        <StatusDot $status={status} />
+                        <StatusText $status={status}>{getStatusLabel(status)}</StatusText>
+                      </StatusCell>
+                      
+                      <ActionsCell>
+                        {u.role !== 'ADMIN' && (
+                          <>
+                            <ActionIconBtn 
+                              type="button" 
+                              onClick={() => openEdit(u)}
+                              title="Editar"
+                            >
+                              <Edit2 />
+                            </ActionIconBtn>
+                            <ActionIconBtn 
+                              type="button"
+                              className="delete"
+                              onClick={() => handleDelete(u)}
+                              title="Excluir"
+                            >
+                              <Trash2 />
+                            </ActionIconBtn>
+                          </>
+                        )}
+                      </ActionsCell>
+                    </TableRow>
+                  )
+                })}
+              </Table>
+              
+              <TableFooter>
+                <FooterText>
+                  Exibindo {startIndex + 1} de {users.length} usuários
+                </FooterText>
+                <Pagination>
+                  <PaginationBtn 
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    title="Página anterior"
+                  >
+                    <ChevronLeft />
+                  </PaginationBtn>
+                  <PaginationBtn 
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    title="Próxima página"
+                  >
+                    <ChevronRight />
+                  </PaginationBtn>
+                </Pagination>
+              </TableFooter>
+            </>
           )}
-        </ListPanel>
+        </TablePanel>
       </ContentSection>
 
       {/* Create User Modal */}

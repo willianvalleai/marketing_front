@@ -11,15 +11,72 @@ import { Input } from '@/shared/components/ui/Input'
 import { Button } from '@/shared/components/ui/Button'
 import { KanbanBoard } from './components/KanbanBoard'
 import { TaskDetailsModal } from './components/TaskDetailsModal'
-import { Plus, ChevronDown } from 'lucide-react'
+import { Plus, ChevronDown, Filter, Share2 } from 'lucide-react'
 
 const ALL_PROJECTS = '__all__'
 
 const PageLayout = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   height: 100%;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    left: -5%;
+    right: 56%;
+    bottom: 61%;
+    background: rgba(143, 216, 255, 0.05);
+    border-radius: 9999px;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 51%;
+    left: 55%;
+    right: 5%;
+    bottom: 10%;
+    background: rgba(173, 198, 255, 0.05);
+    border-radius: 9999px;
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: -1;
+  }
+`
+
+/* ── Page Header ───────────────────────────── */
+const PageHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`
+
+const PageTitle = styled.h1`
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #e2e2e2;
+  line-height: 48px;
+  margin: 0;
+`
+
+const PageSubtitle = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8b90a0;
+  line-height: 24px;
+  margin: 0;
+  span.highlight {
+    color: #8fd8ff;
+  }
 `
 
 /* ── Top Bar ───────────────────────────── */
@@ -49,11 +106,34 @@ const PickerSelect = styled(Select)`
   max-width: 320px;
 `
 
-const AddBtn = styled(Button)``
+const AddBtn = styled(Button)`
+  background: ${({ theme }) => theme.colors.surfaceSolid};
+  color: ${({ theme }) => theme.colors.textDark};
+  border: none;
+  &:hover:not(:disabled) {
+    background: rgba(42, 42, 42, 0.8);
+  }
+`
+
+const ActionBtn = styled(Button)`
+  background: #2a2a2a;
+  color: #e2e2e2;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 24px;
+  gap: 8px;
+  &:hover:not(:disabled) {
+    background: rgba(42, 42, 42, 0.8);
+  }
+`
 
 /* ── Collapsible form ───────────────────── */
 const FormCard = styled.div<{ $open: boolean }>`
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(12px);
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radii.xl};
   box-shadow: ${({ theme }) => theme.shadow.sm};
@@ -91,13 +171,16 @@ const Textarea = styled.textarea`
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radii.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(35, 35, 35, 0.5);
   color: ${({ theme }) => theme.colors.textDark};
   outline: none;
   resize: vertical;
   font-family: inherit;
   font-size: ${({ theme }) => theme.font.sm};
-  &:focus { border-color: ${({ theme }) => theme.colors.primary}; }
+  &:focus { 
+    border-color: ${({ theme }) => theme.colors.primary}; 
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primaryFaint};
+  }
 `
 
 const AssignBox = styled.div`
@@ -113,7 +196,7 @@ const AssignItem = styled.label`
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(35, 35, 35, 0.5);
   border-radius: ${({ theme }) => theme.radii.lg};
 `
 
@@ -129,7 +212,10 @@ const BoardWrap = styled.div`
   flex: 1;
   overflow-x: auto;
   overflow-y: visible;
-  padding-bottom: 8px;
+  padding-bottom: 24px;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
 `
 
 const NotAllowed = styled.div`
@@ -248,6 +334,13 @@ export function KanbanPage() {
 
   return (
     <PageLayout>
+      <PageHeader>
+        <PageTitle>Agentes de IA</PageTitle>
+        <PageSubtitle>
+          Atendimento e automação no centro da <span className="highlight">sua operação</span>
+        </PageSubtitle>
+      </PageHeader>
+
       <TopBar>
         <ProjectPicker>
           <PickerLabel>Projeto:</PickerLabel>
@@ -257,18 +350,28 @@ export function KanbanPage() {
           </PickerSelect>
         </ProjectPicker>
 
-        {isAdmin && (
-          <AddBtn
-            data-variant="primary"
-            data-size="sm"
-            onClick={() => setFormOpen((v) => !v)}
-            disabled={projectId === ALL_PROJECTS}
-          >
-            <Plus style={{ width: 15, height: 15 }} />
-            Nova tarefa
-            <ChevronDown style={{ width: 14, height: 14, transition: '0.2s', transform: formOpen ? 'rotate(180deg)' : 'none' }} />
-          </AddBtn>
-        )}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ActionBtn data-variant="secondary" data-size="sm">
+            <Filter style={{ width: 15, height: 15 }} />
+            Filter
+          </ActionBtn>
+          <ActionBtn data-variant="secondary" data-size="sm">
+            <Share2 style={{ width: 15, height: 15 }} />
+            Share
+          </ActionBtn>
+          {isAdmin && (
+            <AddBtn
+              data-variant="primary"
+              data-size="sm"
+              onClick={() => setFormOpen((v) => !v)}
+              disabled={projectId === ALL_PROJECTS}
+            >
+              <Plus style={{ width: 15, height: 15 }} />
+              Nova tarefa
+              <ChevronDown style={{ width: 14, height: 14, transition: '0.2s', transform: formOpen ? 'rotate(180deg)' : 'none' }} />
+            </AddBtn>
+          )}
+        </div>
       </TopBar>
 
       {isAdmin && (

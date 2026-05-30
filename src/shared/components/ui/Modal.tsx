@@ -6,7 +6,8 @@ import styled from 'styled-components'
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,16 +19,18 @@ const Panel = styled.div`
   width: min(920px, 100%);
   max-height: min(86vh, 920px);
   overflow: auto;
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: rgba(25, 25, 25, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid ${({ theme }) => theme.colors.borderMedium};
   border-radius: ${({ theme }) => theme.radii.xl};
-  box-shadow: ${({ theme }) => theme.shadow.lg};
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
 `
 
 const Header = styled.div`
   position: sticky;
   top: 0;
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(25, 25, 25, 0.95);
+  backdrop-filter: blur(20px);
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   padding: 14px 18px;
   display: flex;
