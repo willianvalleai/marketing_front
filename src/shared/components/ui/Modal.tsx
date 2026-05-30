@@ -46,8 +46,8 @@ const Title = styled.div`
   color: ${({ theme }) => theme.colors.textDark};
 `
 
-const Body = styled.div`
-  padding: 16px 18px;
+const Body = styled.div<{ $noPadding?: boolean }>`
+  padding: ${({ $noPadding }) => $noPadding ? '0' : '16px 18px'};
 `
 
 const Footer = styled.div`
@@ -64,12 +64,14 @@ export function Modal({
   onClose,
   children,
   footer,
+  hideHeader = false,
 }: {
   open: boolean
   title?: string
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  hideHeader?: boolean
 }) {
   useEffect(() => {
     if (!open) return
@@ -85,7 +87,7 @@ export function Modal({
   return createPortal(
     <Backdrop onMouseDown={onClose} role="dialog" aria-modal="true">
       <Panel onMouseDown={(e) => e.stopPropagation()}>
-        {(title ?? footer) && (
+        {!hideHeader && (title ?? footer) && (
           <Header>
             <Title>{title ?? ''}</Title>
             <button
@@ -105,7 +107,7 @@ export function Modal({
             </button>
           </Header>
         )}
-        <Body>{children}</Body>
+        <Body $noPadding={hideHeader}>{children}</Body>
         {footer && <Footer>{footer}</Footer>}
       </Panel>
     </Backdrop>,

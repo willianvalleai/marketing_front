@@ -14,8 +14,8 @@ import { Modal } from '@/shared/components/ui/Modal'
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
@@ -23,26 +23,30 @@ const Grid = styled.div`
 `
 
 const Section = styled.div`
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.xl};
+  border-radius: 12px;
   overflow: hidden;
-  background: ${({ theme }) => theme.colors.bg};
+  background: rgba(25, 25, 25, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 `
 
 const SectionHeader = styled.div`
-  padding: 12px 14px;
-  background: ${({ theme }) => theme.colors.surface};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  font-size: ${({ theme }) => theme.font.sm};
-  font-weight: ${({ theme }) => theme.weights.semibold};
-  color: ${({ theme }) => theme.colors.textDark};
+  padding: 16px 20px;
+  background: rgba(18, 18, 18, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e2e2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `
 
 const SectionBody = styled.div`
-  padding: 12px 14px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 `
 
 const Field = styled.div`
@@ -52,55 +56,185 @@ const Field = styled.div`
 `
 
 const FieldLabel = styled.label`
-  font-size: ${({ theme }) => theme.font.xs};
-  font-weight: ${({ theme }) => theme.weights.medium};
-  color: ${({ theme }) => theme.colors.textLight};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b90a0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+`
+
+const CollaboratorAvatar = styled.div<{ $color: string }>`
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: ${({ $color }) => $color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+`
+
+const CollaboratorRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(35, 35, 35, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(45, 45, 45, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+`
+
+const CollaboratorInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`
+
+const CollaboratorName = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e2e2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+const CollaboratorStatus = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  color: #8b90a0;
+  margin-top: 2px;
+`
+
+const SectorTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(143, 216, 255, 0.1);
+  border: 1px solid rgba(143, 216, 255, 0.2);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8fd8ff;
+  white-space: nowrap;
+`
+
+const Checkbox = styled.input.attrs({ type: 'checkbox' })`
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #6366f1;
+`
+
+const CommentCard = styled.div`
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(35, 35, 35, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(45, 45, 45, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+`
+
+const CommentContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`
+
+const CommentHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+`
+
+const CommentAuthor = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e2e2;
+`
+
+const CommentDate = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  color: #8b90a0;
+`
+
+const CommentText = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  color: #e2e2e2;
+  line-height: 1.5;
+  word-break: break-word;
 `
 
 const Textarea = styled.textarea`
   width: 100%;
   min-height: 110px;
   padding: 10px 12px;
-  border-radius: ${({ theme }) => theme.radii.lg};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
-  color: ${({ theme }) => theme.colors.textDark};
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(35, 35, 35, 0.5);
+  color: #e2e2e2;
   outline: none;
   resize: vertical;
-  font-family: inherit;
-  font-size: ${({ theme }) => theme.font.sm};
-  &:focus { border-color: ${({ theme }) => theme.colors.primary}; }
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  
+  &:focus { 
+    border-color: rgba(143, 216, 255, 0.3);
+    background: rgba(40, 40, 40, 0.6);
+  }
 `
 
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 `
 
 const Row = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: ${({ theme }) => theme.radii.lg};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(35, 35, 35, 0.3);
+  font-size: 12px;
 `
 
 const Muted = styled.div`
-  font-size: ${({ theme }) => theme.font.xs};
-  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: #8b90a0;
 `
 
 const Inline = styled.div`
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
 `
 
 function toDateInputValue(iso: string | null): string {
@@ -118,6 +252,19 @@ function parseLabels(text: string): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    'linear-gradient(135deg, #6366f1, #8b5cf6)', // roxo/azul
+    'linear-gradient(135deg, #ec4899, #f472b6)', // rosa
+    'linear-gradient(135deg, #3b82f6, #6366f1)', // azul
+    'linear-gradient(135deg, #10b981, #06b6d4)', // verde/cyan
+    'linear-gradient(135deg, #f59e0b, #f97316)', // laranja
+    'linear-gradient(135deg, #ef4444, #f97316)', // vermelho
+  ]
+  const index = name.charCodeAt(0) % colors.length
+  return colors[index]
 }
 
 export function TaskDetailsModal({
@@ -566,7 +713,7 @@ export function TaskDetailsModal({
               </Field>
 
               <Inline>
-                <Field style={{ flex: 1, minWidth: 200 }}>
+                <Field>
                   <FieldLabel>Status</FieldLabel>
                   <Select value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)} disabled={!isAdmin}>
                     <option value="TODO">A fazer</option>
@@ -578,7 +725,7 @@ export function TaskDetailsModal({
                   </Select>
                 </Field>
 
-                <Field style={{ flex: 1, minWidth: 200 }}>
+                <Field>
                   <FieldLabel>Nível (prioridade)</FieldLabel>
                   <Select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} disabled={!isAdmin}>
                     <option value="LOW">Baixa</option>
@@ -589,12 +736,12 @@ export function TaskDetailsModal({
               </Inline>
 
               <Inline>
-                <Field style={{ flex: 1, minWidth: 200 }}>
+                <Field>
                   <FieldLabel>Prazo</FieldLabel>
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={!isAdmin} />
                 </Field>
 
-                <Field style={{ flex: 1, minWidth: 150 }}>
+                <Field>
                   <FieldLabel>Alertar (dias antes)</FieldLabel>
                   <Input 
                     type="number" 
@@ -605,10 +752,37 @@ export function TaskDetailsModal({
                     placeholder="Ex: 3" 
                   />
                 </Field>
+              </Inline>
 
-                <Field style={{ flex: 1, minWidth: 200 }}>
-                  <FieldLabel>Labels (separadas por vírgula)</FieldLabel>
-                  <Input value={labelsText} onChange={(e) => setLabelsText(e.target.value)} disabled={!isAdmin} placeholder="ex.: design, urgente" />
+              <Field>
+                <FieldLabel>Labels (separadas por vírgula)</FieldLabel>
+                <Input value={labelsText} onChange={(e) => setLabelsText(e.target.value)} disabled={!isAdmin} placeholder="ex.: design, urgente" />
+              </Field>
+
+              <Inline>
+                <Field>
+                  <FieldLabel>Horas Estimadas</FieldLabel>
+                  <Input 
+                    type="number" 
+                    step="0.5"
+                    min="0" 
+                    value={estimatedHours} 
+                    onChange={(e) => setEstimatedHours(e.target.value)} 
+                    disabled={!isAdmin} 
+                    placeholder="Ex: 8" 
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel>Aprovações Necessárias</FieldLabel>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={requiredApprovals} 
+                    onChange={(e) => setRequiredApprovals(e.target.value)} 
+                    disabled={!isAdmin} 
+                    placeholder="Ex: 2" 
+                  />
                 </Field>
               </Inline>
 
@@ -626,33 +800,6 @@ export function TaskDetailsModal({
                 </Field>
               )}
 
-              <Inline>
-                <Field style={{ flex: 1, minWidth: 150 }}>
-                  <FieldLabel>Horas Estimadas</FieldLabel>
-                  <Input 
-                    type="number" 
-                    step="0.5"
-                    min="0" 
-                    value={estimatedHours} 
-                    onChange={(e) => setEstimatedHours(e.target.value)} 
-                    disabled={!isAdmin} 
-                    placeholder="Ex: 8" 
-                  />
-                </Field>
-
-                <Field style={{ flex: 1, minWidth: 150 }}>
-                  <FieldLabel>Aprovações Necessárias</FieldLabel>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    value={requiredApprovals} 
-                    onChange={(e) => setRequiredApprovals(e.target.value)} 
-                    disabled={!isAdmin} 
-                    placeholder="Ex: 2" 
-                  />
-                </Field>
-              </Inline>
-
               <Field>
                 <FieldLabel style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input 
@@ -660,7 +807,7 @@ export function TaskDetailsModal({
                     checked={isRecurring} 
                     onChange={(e) => setIsRecurring(e.target.checked)} 
                     disabled={!isAdmin}
-                    style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
                   />
                   Tarefa Recorrente
                 </FieldLabel>
@@ -686,18 +833,37 @@ export function TaskDetailsModal({
           </Section>
 
           <Section>
-            <SectionHeader>Colaboradores {assigneesDonePct !== null ? `(${assigneesDonePct}%)` : ''}</SectionHeader>
+            <SectionHeader>
+              Colaboradores
+              {assigneesDonePct !== null && (
+                <span style={{ fontSize: '13px', color: '#8fd8ff', fontWeight: 600 }}>
+                  {assigneesDonePct}%
+                </span>
+              )}
+            </SectionHeader>
             <SectionBody>
               {details.assignees.length === 0 ? (
                 <Muted>Nenhum colaborador atribuído.</Muted>
               ) : (
-                <List>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {details.assignees.map((a) => (
-                    <Row key={a.userId}>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{a.user?.name ?? 'Usuário'}</div>
-                        <Muted>{a.doneAt ? 'Concluído' : 'Em aberto'}</Muted>
-                      </div>
+                    <CollaboratorRow key={a.userId}>
+                      <CollaboratorAvatar $color={getAvatarColor(a.user?.name ?? 'U')}>
+                        {(a.user?.name ?? 'U').charAt(0).toUpperCase()}
+                      </CollaboratorAvatar>
+                      <CollaboratorInfo>
+                        <CollaboratorName>{a.user?.name ?? 'Usuário'}</CollaboratorName>
+                        <CollaboratorStatus>
+                          {a.doneAt ? 'Concluído' : 'Em aberto'}
+                        </CollaboratorStatus>
+                        {(a.user?.sectors ?? []).length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                            {(a.user?.sectors ?? []).map((s) => (
+                              <SectorTag key={s.id}>{s.name}</SectorTag>
+                            ))}
+                          </div>
+                        )}
+                      </CollaboratorInfo>
                       {user?.id === a.userId && (
                         <Button
                           data-variant={a.doneAt ? 'ghost' : 'primary'}
@@ -705,35 +871,44 @@ export function TaskDetailsModal({
                           onClick={() => void markMyPart(a.doneAt ? false : true)}
                           type="button"
                         >
-                          {a.doneAt ? 'Reabrir minha parte' : 'Concluir minha parte'}
+                          {a.doneAt ? 'Reabrir' : 'Concluir'}
                         </Button>
                       )}
-                    </Row>
+                    </CollaboratorRow>
                   ))}
-                </List>
+                </div>
               )}
 
               {isAdmin && (
-                <div>
-                  <FieldLabel style={{ marginBottom: 8 }}>Atribuir colaboradores</FieldLabel>
-                  <List>
+                <div style={{ marginTop: 8 }}>
+                  <FieldLabel style={{ marginBottom: 12 }}>Atribuir colaboradores</FieldLabel>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {users
                       .filter((u) => u.role === 'COLABORADOR')
                       .map((u) => (
-                        <Row key={u.id}>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{u.name}</div>
-                            <Muted>{u.email}</Muted>
-                          </div>
-                          <input
-                            type="checkbox"
+                        <CollaboratorRow key={u.id}>
+                          <CollaboratorAvatar $color={getAvatarColor(u.name)}>
+                            {u.name.charAt(0).toUpperCase()}
+                          </CollaboratorAvatar>
+                          <CollaboratorInfo>
+                            <CollaboratorName>{u.name}</CollaboratorName>
+                            <CollaboratorStatus>{u.email}</CollaboratorStatus>
+                            {(u.sectors ?? []).length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                {(u.sectors ?? []).map((s) => (
+                                  <SectorTag key={s.id}>{s.name}</SectorTag>
+                                ))}
+                              </div>
+                            )}
+                          </CollaboratorInfo>
+                          <Checkbox
                             checked={assigneeIds.includes(u.id)}
                             onChange={() => toggleAssignee(u.id)}
                             aria-label={`Atribuir ${u.name}`}
                           />
-                        </Row>
+                        </CollaboratorRow>
                       ))}
-                  </List>
+                  </div>
                 </div>
               )}
             </SectionBody>
@@ -786,22 +961,25 @@ export function TaskDetailsModal({
             <SectionHeader>Comentários</SectionHeader>
             <SectionBody>
               {details.comments.length === 0 ? <Muted>Nenhum comentário ainda.</Muted> : (
-                <List>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {details.comments.map((c) => (
-                    <Row key={c.id} style={{ alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{ fontWeight: 700 }}>{c.author?.name ?? 'Usuário'}</div>
-                          <Muted>{new Date(c.createdAt).toLocaleString('pt-BR')}</Muted>
-                        </div>
-                        <div style={{ marginTop: 6 }}>{c.content}</div>
-                      </div>
-                    </Row>
+                    <CommentCard key={c.id}>
+                      <CollaboratorAvatar $color={getAvatarColor(c.author?.name ?? 'U')}>
+                        {(c.author?.name ?? 'U').charAt(0).toUpperCase()}
+                      </CollaboratorAvatar>
+                      <CommentContent>
+                        <CommentHeader>
+                          <CommentAuthor>{c.author?.name ?? 'Usuário'}</CommentAuthor>
+                          <CommentDate>{new Date(c.createdAt).toLocaleString('pt-BR')}</CommentDate>
+                        </CommentHeader>
+                        <CommentText>{c.content}</CommentText>
+                      </CommentContent>
+                    </CommentCard>
                   ))}
-                </List>
+                </div>
               )}
 
-              <Field>
+              <Field style={{ marginTop: 8 }}>
                 <FieldLabel>Novo comentário</FieldLabel>
                 <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escreva um comentário…" />
                 <Button

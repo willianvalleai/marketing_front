@@ -5,7 +5,8 @@ import { useAuth } from '@/app/providers/AuthContext'
 import { projectsService } from '@/shared/services/projects.service'
 import { tasksService } from '@/shared/services/tasks.service'
 import { usersService } from '@/shared/services/users.service'
-import type { Project, Task, TaskPriority, TaskStatus } from '@/shared/types'
+import { sectorsService } from '@/shared/services/sectors.service'
+import type { Project, Sector, Task, TaskPriority, TaskStatus } from '@/shared/types'
 import { Select } from '@/shared/components/ui/Select'
 import { Input } from '@/shared/components/ui/Input'
 import { Button } from '@/shared/components/ui/Button'
@@ -235,7 +236,9 @@ export function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState<string>(ALL_PROJECTS)
   const [tasks, setTasks] = useState<Task[]>([])
-  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string; role: string }>>([])
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string; role: string; sectors?: { id: string; name: string }[] }>>([])
+  const [sectors, setSectors] = useState<Sector[]>([])
+  const [sectorFilter, setSectorFilter] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
 
@@ -278,6 +281,11 @@ export function KanbanPage() {
     setUsers(u)
   }
 
+  const loadSectors = async () => {
+    const s = await sectorsService.list().catch(() => [] as Sector[])
+    setSectors(s)
+  }
+
   const loadAllTasks = async () => {
     setLoading(true)
     try {
@@ -296,7 +304,7 @@ export function KanbanPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { if (canUse) { void loadProjects(); void loadUsers() } }, [canUse]) // eslint-disable-line
+  useEffect(() => { if (canUse) { void loadProjects(); void loadUsers(); void loadSectors() } }, [canUse]) // eslint-disable-line
   useEffect(() => {
     if (!projectId) return
     if (projectId === ALL_PROJECTS) void loadAllTasks()
@@ -332,6 +340,28 @@ export function KanbanPage() {
 
   if (!canUse) return <NotAllowed>Kanban disponível apenas para Admin e Colaborador.</NotAllowed>
 
+  // Filtrar tasks por setor selecionado
+  const filteredTasks = useMemo(() => {
+    if (!sectorFilter) return tasks
+    return tasks.filter((t) => {
+      // Verifica assignees múltiplos
+      const assignees = t.assignees ?? []
+      const matchFromAssignees = assignees.some((a) => {
+        const u = users.find((u) => u.id === a.userId)
+        return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
+      })
+      if (matchFromAssignees) return true
+
+      // Verifica assignedToId (atribuição única)
+      if (t.assignedToId) {
+        const u = users.find((u) => u.id === t.assignedToId)
+        return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
+      }
+
+      return false
+    })
+  }, [tasks, sectorFilter, users])
+
   return (
     <PageLayout>
       <PageHeader>
@@ -351,6 +381,16 @@ export function KanbanPage() {
         </ProjectPicker>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {sectors.length > 0 && (
+            <PickerSelect
+              value={sectorFilter}
+              onChange={(e) => setSectorFilter(e.target.value)}
+              style={{ minWidth: 140 }}
+            >
+              <option value="">Todos os setores</option>
+              {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </PickerSelect>
+          )}
           <ActionBtn data-variant="secondary" data-size="sm">
             <Filter style={{ width: 15, height: 15 }} />
             Filter
@@ -436,7 +476,7 @@ export function KanbanPage() {
         {loading
           ? <NotAllowed>Carregando tarefas…</NotAllowed>
           : <KanbanBoard
-              tasks={tasks}
+              tasks={filteredTasks}
               onMoveTask={moveTask}
               onOpenTask={(id) => setOpenTaskId(id)}
               projectMetaById={projectMetaById}

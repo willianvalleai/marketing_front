@@ -3,12 +3,13 @@ import { Navigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { usersService } from '@/shared/services/users.service'
-import type { Role, User } from '@/shared/types'
+import { sectorsService } from '@/shared/services/sectors.service'
+import type { Role, Sector, User } from '@/shared/types'
 import { Input } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
 import { Button } from '@/shared/components/ui/Button'
 import { Modal } from '@/shared/components/ui/Modal'
-import { UserPlus, Trash2, ShieldCheck, Briefcase, UserCircle2, Mail, Phone, Building2, FileText, CheckCircle2, XCircle, Filter, Download, Edit2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { UserPlus, Trash2, ShieldCheck, Briefcase, UserCircle2, Mail, Phone, Building2, FileText, CheckCircle2, XCircle, Filter, Download, Edit2, ChevronLeft, ChevronRight, Tag, Plus, X } from 'lucide-react'
 
 const PageContainer = styled.div`
   display: flex;
@@ -628,6 +629,168 @@ const ErrorMsg = styled.p`
   margin: 0;
 `
 
+/* ── Tabs ──────────────────────────────────── */
+const TabsBar = styled.div`
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 24px;
+`
+
+const TabBtn = styled.button<{ $active: boolean }>`
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${({ $active }) => $active ? '#e2e2e2' : '#8b90a0'};
+  border-bottom: 2px solid ${({ $active }) => $active ? '#8fd8ff' : 'transparent'};
+  margin-bottom: -1px;
+  transition: all 0.2s ease;
+  
+  &:hover { color: #e2e2e2; }
+`
+
+/* ── Sector badges ─────────────────────────── */
+const SectorBadgeList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`
+
+const SectorBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(143, 216, 255, 0.12);
+  border: 1px solid rgba(143, 216, 255, 0.25);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8fd8ff;
+  white-space: nowrap;
+`
+
+/* ── Sector picker (modal) ─────────────────── */
+const SectorPickerWrap = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`
+
+const SectorPickerBtn = styled.button<{ $selected: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  border: 1px solid ${({ $selected }) => $selected ? '#8fd8ff' : 'rgba(255,255,255,0.12)'};
+  background: ${({ $selected }) => $selected ? 'rgba(143,216,255,0.15)' : 'rgba(35,35,35,0.4)'};
+  color: ${({ $selected }) => $selected ? '#8fd8ff' : '#8b90a0'};
+  
+  &:hover {
+    border-color: #8fd8ff;
+    color: #8fd8ff;
+    background: rgba(143,216,255,0.1);
+  }
+`
+
+/* ── Sectors management tab ────────────────── */
+const SectorsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+`
+
+const SectorCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(25, 25, 25, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(35, 35, 35, 0.6);
+  }
+`
+
+const SectorCardName = styled.span`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e2e2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  svg { width: 14px; height: 14px; color: #8fd8ff; }
+`
+
+const SectorDeleteBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #8b90a0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  
+  svg { width: 14px; height: 14px; }
+`
+
+const AddSectorRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+`
+
+const AddSectorBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #8fd8ff, #6366f1);
+  color: #131313;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  
+  &:hover { opacity: 0.9; transform: translateY(-1px); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  svg { width: 14px; height: 14px; }
+`
+
 const roleIcon = (role: string) => {
   if (role === 'ADMIN') return <ShieldCheck />
   if (role === 'COLABORADOR') return <Briefcase />
@@ -638,8 +801,13 @@ export function UsersPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
 
+  const [activeTab, setActiveTab] = useState<'users' | 'sectors'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [sectors, setSectors] = useState<Sector[]>([])
+  const [sectorsLoading, setSectorsLoading] = useState(false)
+  const [newSectorName, setNewSectorName] = useState('')
+  const [savingSector, setSavingSector] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -658,6 +826,7 @@ export function UsersPage() {
   const [phone, setPhone] = useState('')
   const [company, setCompany] = useState('')
   const [notes, setNotes] = useState('')
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -671,14 +840,54 @@ export function UsersPage() {
   const [eCompany, setECompany] = useState('')
   const [eNotes, setENotes] = useState('')
   const [eActive, setEActive] = useState(true)
+  const [eSelectedSectorIds, setESelectedSectorIds] = useState<string[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
+
+  const loadSectors = async () => {
+    setSectorsLoading(true)
+    try { setSectors(await sectorsService.list()) } finally { setSectorsLoading(false) }
+  }
 
   const load = async () => {
     setLoading(true)
     try { setUsers(await usersService.list()) } finally { setLoading(false) }
   }
 
-  useEffect(() => { if (isAdmin) void load() }, [isAdmin])
+  useEffect(() => {
+    if (isAdmin) {
+      void load()
+      void loadSectors()
+    }
+  }, [isAdmin])
+
+  const createSector = async () => {
+    const name = newSectorName.trim()
+    if (!name) return
+    setSavingSector(true)
+    try {
+      const created = await sectorsService.create(name)
+      setSectors((cur) => [...cur, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewSectorName('')
+    } catch {
+      alert('Erro ao criar setor.')
+    } finally {
+      setSavingSector(false)
+    }
+  }
+
+  const deleteSector = async (s: Sector) => {
+    if (!confirm(`Remover setor "${s.name}"? Todos os colaboradores perderão essa associação.`)) return
+    try {
+      await sectorsService.remove(s.id)
+      setSectors((cur) => cur.filter((x) => x.id !== s.id))
+    } catch {
+      alert('Erro ao remover setor.')
+    }
+  }
+
+  const toggleSectorId = (id: string, current: string[], setter: (v: string[]) => void) => {
+    setter(current.includes(id) ? current.filter((x) => x !== id) : [...current, id])
+  }
 
   const openCreateModal = () => {
     setName('')
@@ -688,6 +897,7 @@ export function UsersPage() {
     setPhone('')
     setCompany('')
     setNotes('')
+    setSelectedSectorIds([])
     setError('')
     setCreateOpen(true)
   }
@@ -705,6 +915,7 @@ export function UsersPage() {
         phone: phone.trim() || undefined,
         company: company.trim() || undefined,
         notes: notes.trim() || undefined,
+        sectorIds: role === 'COLABORADOR' ? selectedSectorIds : undefined,
       })
       setCreateOpen(false)
       await load()
@@ -724,6 +935,7 @@ export function UsersPage() {
     setECompany(u.company ?? '')
     setENotes(u.notes ?? '')
     setEActive(u.isActive ?? true)
+    setESelectedSectorIds((u.sectors ?? []).map((s) => s.id))
     setEditOpen(true)
   }
 
@@ -739,6 +951,7 @@ export function UsersPage() {
         company: eCompany.trim() || null,
         notes: eNotes.trim() || null,
         isActive: eActive,
+        sectorIds: eRole === 'COLABORADOR' ? eSelectedSectorIds : [],
       })
       setUsers((cur) => cur.map((x) => (x.id === updated.id ? updated : x)))
       setEditOpen(false)
@@ -778,117 +991,188 @@ export function UsersPage() {
         </PageTitleGroup>
         <HeaderRight>
           <UserCount>Total de Usuários: {users.length}</UserCount>
-          <NewUserBtn onClick={openCreateModal}>
-            <UserPlus />
-            Novo Usuário
-          </NewUserBtn>
+          {activeTab === 'users' && (
+            <NewUserBtn onClick={openCreateModal}>
+              <UserPlus />
+              Novo Usuário
+            </NewUserBtn>
+          )}
         </HeaderRight>
       </PageHeader>
 
       <ContentSection>
-        <TablePanel>
-          <TableHead>
-            <TableTitle>Lista de Usuários</TableTitle>
-            <TableActions>
-              <IconButton type="button" title="Filtrar">
-                <Filter />
-              </IconButton>
-              <IconButton type="button" title="Exportar">
-                <Download />
-              </IconButton>
-            </TableActions>
-          </TableHead>
-          
-          {loading ? (
-            <Empty>Carregando…</Empty>
-          ) : users.length === 0 ? (
-            <Empty>Nenhum usuário cadastrado.</Empty>
-          ) : (
-            <>
-              <Table>
-                <TableHeaderRow>
-                  <TableHeaderCell>Usuário</TableHeaderCell>
-                  <TableHeaderCell>Role</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Ações</TableHeaderCell>
-                </TableHeaderRow>
-                {currentUsers.map((u) => {
-                  const status = getUserStatus(u)
-                  return (
-                    <TableRow key={u.id}>
-                      <UserCell>
-                        <UserAvatarBox $role={u.role}>
-                          {u.name.charAt(0).toUpperCase()}
-                        </UserAvatarBox>
-                        <UserInfo>
-                          <UserNameText>{u.name}</UserNameText>
-                          <UserEmail>{u.email}</UserEmail>
-                        </UserInfo>
-                      </UserCell>
-                      
-                      <RoleCell>
-                        <RoleBadge $role={u.role}>
-                          {u.role}
-                        </RoleBadge>
-                      </RoleCell>
-                      
-                      <StatusCell>
-                        <StatusDot $status={status} />
-                        <StatusText $status={status}>{getStatusLabel(status)}</StatusText>
-                      </StatusCell>
-                      
-                      <ActionsCell>
-                        {u.role !== 'ADMIN' && (
-                          <>
-                            <ActionIconBtn 
-                              type="button" 
-                              onClick={() => openEdit(u)}
-                              title="Editar"
-                            >
-                              <Edit2 />
-                            </ActionIconBtn>
-                            <ActionIconBtn 
-                              type="button"
-                              className="delete"
-                              onClick={() => handleDelete(u)}
-                              title="Excluir"
-                            >
-                              <Trash2 />
-                            </ActionIconBtn>
-                          </>
-                        )}
-                      </ActionsCell>
-                    </TableRow>
-                  )
-                })}
-              </Table>
-              
-              <TableFooter>
-                <FooterText>
-                  Exibindo {startIndex + 1} de {users.length} usuários
-                </FooterText>
-                <Pagination>
-                  <PaginationBtn 
-                    type="button"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    title="Página anterior"
-                  >
-                    <ChevronLeft />
-                  </PaginationBtn>
-                  <PaginationBtn 
-                    type="button"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    title="Próxima página"
-                  >
-                    <ChevronRight />
-                  </PaginationBtn>
-                </Pagination>
-              </TableFooter>
-            </>
-          )}
-        </TablePanel>
+        <TabsBar>
+          <TabBtn $active={activeTab === 'users'} onClick={() => setActiveTab('users')}>
+            Usuários
+          </TabBtn>
+          <TabBtn $active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')}>
+            Setores
+          </TabBtn>
+        </TabsBar>
+
+        {/* ── Aba Usuários ── */}
+        {activeTab === 'users' && (
+          <TablePanel>
+            <TableHead>
+              <TableTitle>Lista de Usuários</TableTitle>
+              <TableActions>
+                <IconButton type="button" title="Filtrar">
+                  <Filter />
+                </IconButton>
+                <IconButton type="button" title="Exportar">
+                  <Download />
+                </IconButton>
+              </TableActions>
+            </TableHead>
+            
+            {loading ? (
+              <Empty>Carregando…</Empty>
+            ) : users.length === 0 ? (
+              <Empty>Nenhum usuário cadastrado.</Empty>
+            ) : (
+              <>
+                <Table>
+                  <TableHeaderRow>
+                    <TableHeaderCell>Usuário</TableHeaderCell>
+                    <TableHeaderCell>Role</TableHeaderCell>
+                    <TableHeaderCell>Setores</TableHeaderCell>
+                    <TableHeaderCell>Status</TableHeaderCell>
+                    <TableHeaderCell>Ações</TableHeaderCell>
+                  </TableHeaderRow>
+                  {currentUsers.map((u) => {
+                    const status = getUserStatus(u)
+                    return (
+                      <TableRow key={u.id}>
+                        <UserCell>
+                          <UserAvatarBox $role={u.role}>
+                            {u.name.charAt(0).toUpperCase()}
+                          </UserAvatarBox>
+                          <UserInfo>
+                            <UserNameText>{u.name}</UserNameText>
+                            <UserEmail>{u.email}</UserEmail>
+                          </UserInfo>
+                        </UserCell>
+                        
+                        <RoleCell>
+                          <RoleBadge $role={u.role}>
+                            {u.role}
+                          </RoleBadge>
+                        </RoleCell>
+
+                        <td style={{ padding: '0 12px' }}>
+                          {u.role === 'COLABORADOR' && (u.sectors ?? []).length > 0 ? (
+                            <SectorBadgeList>
+                              {(u.sectors ?? []).map((s) => (
+                                <SectorBadge key={s.id}>{s.name}</SectorBadge>
+                              ))}
+                            </SectorBadgeList>
+                          ) : (
+                            <span style={{ fontSize: 11, color: '#8b90a0' }}>—</span>
+                          )}
+                        </td>
+                        
+                        <StatusCell>
+                          <StatusDot $status={status} />
+                          <StatusText $status={status}>{getStatusLabel(status)}</StatusText>
+                        </StatusCell>
+                        
+                        <ActionsCell>
+                          {u.role !== 'ADMIN' && (
+                            <>
+                              <ActionIconBtn 
+                                type="button" 
+                                onClick={() => openEdit(u)}
+                                title="Editar"
+                              >
+                                <Edit2 />
+                              </ActionIconBtn>
+                              <ActionIconBtn 
+                                type="button"
+                                className="delete"
+                                onClick={() => handleDelete(u)}
+                                title="Excluir"
+                              >
+                                <Trash2 />
+                              </ActionIconBtn>
+                            </>
+                          )}
+                        </ActionsCell>
+                      </TableRow>
+                    )
+                  })}
+                </Table>
+                
+                <TableFooter>
+                  <FooterText>
+                    Exibindo {startIndex + 1} de {users.length} usuários
+                  </FooterText>
+                  <Pagination>
+                    <PaginationBtn 
+                      type="button"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      title="Página anterior"
+                    >
+                      <ChevronLeft />
+                    </PaginationBtn>
+                    <PaginationBtn 
+                      type="button"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      title="Próxima página"
+                    >
+                      <ChevronRight />
+                    </PaginationBtn>
+                  </Pagination>
+                </TableFooter>
+              </>
+            )}
+          </TablePanel>
+        )}
+
+        {/* ── Aba Setores ── */}
+        {activeTab === 'sectors' && (
+          <TablePanel>
+            <TableHead>
+              <TableTitle>Gerenciar Setores</TableTitle>
+            </TableHead>
+            <div style={{ padding: '20px 24px' }}>
+              <AddSectorRow>
+                <Input
+                  value={newSectorName}
+                  onChange={(e) => setNewSectorName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void createSector() } }}
+                  placeholder="Nome do setor (ex: Design, Marketing…)"
+                  style={{ flex: 1 }}
+                />
+                <AddSectorBtn type="button" onClick={() => void createSector()} disabled={savingSector || !newSectorName.trim()}>
+                  <Plus />
+                  {savingSector ? 'Criando…' : 'Criar Setor'}
+                </AddSectorBtn>
+              </AddSectorRow>
+
+              {sectorsLoading ? (
+                <Empty>Carregando…</Empty>
+              ) : sectors.length === 0 ? (
+                <Empty>Nenhum setor cadastrado ainda. Crie o primeiro acima.</Empty>
+              ) : (
+                <SectorsGrid>
+                  {sectors.map((s) => (
+                    <SectorCard key={s.id}>
+                      <SectorCardName>
+                        <Tag />
+                        {s.name}
+                      </SectorCardName>
+                      <SectorDeleteBtn type="button" onClick={() => void deleteSector(s)} title="Remover setor">
+                        <X />
+                      </SectorDeleteBtn>
+                    </SectorCard>
+                  ))}
+                </SectorsGrid>
+              )}
+            </div>
+          </TablePanel>
+        )}
       </ContentSection>
 
       {/* Create User Modal */}
@@ -957,6 +1241,24 @@ export function UsersPage() {
               <option value="CLIENTE">Cliente</option>
             </Select>
           </FieldGroup>
+          {role === 'COLABORADOR' && sectors.length > 0 && (
+            <FieldGroup>
+              <Label>Setores (opcional)</Label>
+              <SectorPickerWrap>
+                {sectors.map((s) => (
+                  <SectorPickerBtn
+                    key={s.id}
+                    type="button"
+                    $selected={selectedSectorIds.includes(s.id)}
+                    onClick={() => toggleSectorId(s.id, selectedSectorIds, setSelectedSectorIds)}
+                  >
+                    {selectedSectorIds.includes(s.id) && <X style={{ width: 10, height: 10 }} />}
+                    {s.name}
+                  </SectorPickerBtn>
+                ))}
+              </SectorPickerWrap>
+            </FieldGroup>
+          )}
           <FieldGroup>
             <Label>Telefone/WhatsApp (opcional)</Label>
             <Input 
@@ -1033,6 +1335,24 @@ export function UsersPage() {
                   <option value="CLIENTE">Cliente</option>
                 </Select>
               </EditFieldGroup>
+              {eRole === 'COLABORADOR' && sectors.length > 0 && (
+                <EditFieldGroup>
+                  <EditLabel><Tag />Setores</EditLabel>
+                  <SectorPickerWrap>
+                    {sectors.map((s) => (
+                      <SectorPickerBtn
+                        key={s.id}
+                        type="button"
+                        $selected={eSelectedSectorIds.includes(s.id)}
+                        onClick={() => toggleSectorId(s.id, eSelectedSectorIds, setESelectedSectorIds)}
+                      >
+                        {eSelectedSectorIds.includes(s.id) && <X style={{ width: 10, height: 10 }} />}
+                        {s.name}
+                      </SectorPickerBtn>
+                    ))}
+                  </SectorPickerWrap>
+                </EditFieldGroup>
+              )}
             </EditSection>
 
             <EditSection>

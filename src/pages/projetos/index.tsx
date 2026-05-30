@@ -4,7 +4,8 @@ import { useAuth } from '@/app/providers/AuthContext'
 import { projectsService } from '@/shared/services/projects.service'
 import { usersService } from '@/shared/services/users.service'
 import { assetsService } from '@/shared/services/assets.service'
-import type { Asset, Project, TaskPriority, User } from '@/shared/types'
+import type { Asset, Project, Sector, TaskPriority, User } from '@/shared/types'
+import { sectorsService } from '@/shared/services/sectors.service'
 import { Input, Textarea } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
 import { Button } from '@/shared/components/ui/Button'
@@ -12,6 +13,7 @@ import { Modal } from '@/shared/components/ui/Modal'
 import {
   Plus, Trash2, FolderOpen, Users as UsersIcon,
   Link as LinkIcon, Pencil, CheckSquare, Search, ChevronRight, MoreVertical,
+  ChevronLeft, Check,
 } from 'lucide-react'
 import { ClientProjectsPage } from './client'
 import { getErrorMessage } from '@/shared/services/api'
@@ -550,6 +552,179 @@ const Label = styled.label`
   letter-spacing: 0.05em;
 `
 
+/* ── Multistep Modal Components ────────────────────────────────── */
+const StepsIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  background: rgba(18, 18, 18, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+`
+
+const StepItem = styled.div<{ $active: boolean; $completed: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex: 1;
+  z-index: 1;
+`
+
+const StepNumber = styled.div<{ $active: boolean; $completed: boolean }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  ${({ $completed, $active }) => {
+    if ($completed) {
+      return `
+        background: linear-gradient(135deg, #10b981, #6ee7b7);
+        color: #131313;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        transform: scale(1.05);
+      `;
+    }
+    if ($active) {
+      return `
+        background: linear-gradient(135deg, #8fd8ff, #6366f1);
+        color: #131313;
+        box-shadow: 0 0 20px rgba(143, 216, 255, 0.5);
+        transform: scale(1.1);
+      `;
+    }
+    return `
+      background: rgba(35, 35, 35, 0.5);
+      color: #8b90a0;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    `;
+  }}
+`
+
+const StepLabel = styled.div<{ $active: boolean; $completed: boolean }>`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+  color: ${({ $active, $completed }) => 
+    $active || $completed ? '#e2e2e2' : '#8b90a0'};
+`
+
+const StepLine = styled.div<{ $completed: boolean }>`
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background: ${({ $completed }) => 
+    $completed 
+      ? 'linear-gradient(90deg, #10b981, #6ee7b7)' 
+      : 'rgba(255, 255, 255, 0.05)'};
+  transition: all 0.5s ease;
+  z-index: 0;
+`
+
+const StepContent = styled.div<{ $show: boolean }>`
+  display: ${({ $show }) => $show ? 'flex' : 'none'};
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 32px;
+  min-height: 400px;
+  animation: ${fadeUp} 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+`
+
+const StepTitle = styled.h3`
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #e2e2e2;
+  margin: 0 0 4px 0;
+`
+
+const StepDescription = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #8b90a0;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+`
+
+const NavigationButtons = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 18, 0.5);
+  gap: 12px;
+`
+
+const NavButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  
+  ${({ $variant }) => {
+    if ($variant === 'primary') {
+      return `
+        background: linear-gradient(135deg, #8fd8ff, #6366f1);
+        color: #131313;
+        box-shadow: 0 4px 12px rgba(143, 216, 255, 0.25);
+        
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(143, 216, 255, 0.35);
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+      `;
+    }
+    return `
+      background: rgba(35, 35, 35, 0.5);
+      color: #e2e2e2;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      &:hover:not(:disabled) {
+        background: rgba(45, 45, 45, 0.7);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    `;
+  }}
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`
+
 const Hint = styled.p`
   font-size: ${({ theme }) => theme.font.sm};
   color: ${({ theme }) => theme.colors.textMuted};
@@ -737,6 +912,50 @@ const LinkRowBtn = styled.button`
   svg { width: 14px; height: 14px; }
 `
 
+const CollabFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+`
+
+const CollabFilterBtn = styled.button<{ $active: boolean }>`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: ${({ $active }) => $active ? 600 : 400};
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid ${({ $active }) => $active ? 'rgba(143, 216, 255, 0.5)' : 'rgba(255,255,255,0.1)'};
+  background: ${({ $active }) => $active ? 'rgba(143, 216, 255, 0.15)' : 'transparent'};
+  color: ${({ $active }) => $active ? '#8fd8ff' : '#8b90a0'};
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover {
+    border-color: rgba(143, 216, 255, 0.4);
+    color: #8fd8ff;
+  }
+`
+
+const CollabSectorTags = styled.div`
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+`
+
+const CollabSectorTag = styled.span`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 8px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+  white-space: nowrap;
+`
+
 function parseLabels(text: string): string[] {
   return text.split(',').map((s) => s.trim()).filter(Boolean)
 }
@@ -749,6 +968,8 @@ export function ProjetosPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [clients, setClients] = useState<User[]>([])
   const [collabs, setCollabs] = useState<User[]>([])
+  const [sectors, setSectors] = useState<Sector[]>([])
+  const [collabSectorFilter, setCollabSectorFilter] = useState('')
   const [q, setQ] = useState('')
   const [clientFilter, setClientFilter] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -757,6 +978,7 @@ export function ProjetosPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   
   const [createOpen, setCreateOpen] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [clientId, setClientId] = useState('')
@@ -803,6 +1025,7 @@ export function ProjetosPage() {
       const u = await usersService.list()
       setClients(u.filter((x) => x.role === 'CLIENTE'))
       setCollabs(u.filter((x) => x.role === 'COLABORADOR'))
+      sectorsService.list().then(setSectors).catch(() => setSectors([]))
     } catch (err) {
       setLoadError(getErrorMessage(err, 'Falha ao carregar projetos.'))
       setProjects([]); setClients([]); setCollabs([])
@@ -851,8 +1074,20 @@ export function ProjetosPage() {
     setBudget('')
     setTasks([{ title: '', description: '', priority: 'MEDIUM', dueDate: '', labelsText: '', assigneeIds: [] }])
     setError('')
+    setCurrentStep(1)
     setCreateOpen(true)
   }
+
+  const nextStep = () => {
+    if (currentStep < 3) setCurrentStep(currentStep + 1)
+  }
+
+  const previousStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
+
+  const canProceedStep1 = title.trim() && clientId
+  const canProceedStep2 = true // Step 2 tem apenas campos opcionais
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1071,130 +1306,201 @@ export function ProjetosPage() {
         </CardsGrid>
       </ContentSection>
 
-      <Modal open={createOpen} onClose={() => { setCreateOpen(false); setError('') }}
-        title="Criar Novo Projeto"
-        footer={<>
-          <Button data-variant="ghost" data-size="md" type="button" onClick={() => { setCreateOpen(false); setError('') }}>Cancelar</Button>
-          <Button data-variant="primary" data-size="md" type="submit" form="create-project-form" data-loading={saving ? 'true' : 'false'} disabled={saving || !title.trim() || !clientId}>
-            {saving ? 'Criando…' : 'Criar Projeto'}
-          </Button>
-        </>}>
-        <FormBody id="create-project-form" onSubmit={create}>
-          <FieldGroup>
-            <Label>Título do projeto</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Site Institucional" required />
-          </FieldGroup>
-          <FieldGroup>
-            <Label>Descrição <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva o objetivo do projeto..." style={{ minHeight: 80 }} />
-          </FieldGroup>
-          <FieldGroup>
-            <Label>Cliente</Label>
-            <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
-              <option value="">Selecione o cliente...</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
-            {clients.length === 0 && <Hint>Cadastre um CLIENTE em Usuários primeiro.</Hint>}
-          </FieldGroup>
+      <Modal 
+        open={createOpen} 
+        onClose={() => { 
+          setCreateOpen(false); 
+          setError(''); 
+          setCurrentStep(1);
+        }}
+        title=""
+        hideHeader
+        footer={null}
+      >
+        {/* Step Indicator */}
+        <StepsIndicator>
+          <StepItem $active={currentStep === 1} $completed={currentStep > 1}>
+            <StepNumber $active={currentStep === 1} $completed={currentStep > 1}>
+              {currentStep > 1 ? <Check /> : '1'}
+            </StepNumber>
+            <StepLabel $active={currentStep === 1} $completed={currentStep > 1}>
+              Informações Básicas
+            </StepLabel>
+            {currentStep < 3 && <StepLine $completed={currentStep > 1} />}
+          </StepItem>
 
-          <SectionDivider />
-          <FieldGroup>
-            <Label>Briefing <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-            <Textarea value={briefing} onChange={(e) => setBriefing(e.target.value)} placeholder="Descreva o contexto e necessidades do projeto..." style={{ minHeight: 100 }} />
-          </FieldGroup>
-          <FieldGroup>
-            <Label>Objetivos <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <Input 
-                value={objectiveInput} 
-                onChange={(e) => setObjectiveInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
+          <StepItem $active={currentStep === 2} $completed={currentStep > 2}>
+            <StepNumber $active={currentStep === 2} $completed={currentStep > 2}>
+              {currentStep > 2 ? <Check /> : '2'}
+            </StepNumber>
+            <StepLabel $active={currentStep === 2} $completed={currentStep > 2}>
+              Briefing & Objetivos
+            </StepLabel>
+            {currentStep < 3 && <StepLine $completed={currentStep > 2} />}
+          </StepItem>
+
+          <StepItem $active={currentStep === 3} $completed={false}>
+            <StepNumber $active={currentStep === 3} $completed={false}>
+              3
+            </StepNumber>
+            <StepLabel $active={currentStep === 3} $completed={false}>
+              Status & Tarefas
+            </StepLabel>
+          </StepItem>
+        </StepsIndicator>
+
+        {/* Form */}
+        <FormBody id="create-project-form" onSubmit={create}>
+          {/* Step 1: Informações Básicas */}
+          <StepContent $show={currentStep === 1}>
+            <div>
+              <StepTitle>Informações Básicas do Projeto</StepTitle>
+              <StepDescription>
+                Comece definindo o nome do projeto, uma descrição e o cliente responsável.
+              </StepDescription>
+            </div>
+
+            <FieldGroup>
+              <Label>Título do projeto *</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Site Institucional" required />
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>Descrição <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva o objetivo do projeto..." style={{ minHeight: 100 }} />
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>Cliente *</Label>
+              <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
+                <option value="">Selecione o cliente...</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+              {clients.length === 0 && <Hint>Cadastre um CLIENTE em Usuários primeiro.</Hint>}
+            </FieldGroup>
+          </StepContent>
+
+          {/* Step 2: Briefing & Objetivos */}
+          <StepContent $show={currentStep === 2}>
+            <div>
+              <StepTitle>Briefing & Objetivos</StepTitle>
+              <StepDescription>
+                Detalhe o contexto do projeto, os objetivos principais, público-alvo e orçamento.
+              </StepDescription>
+            </div>
+
+            <FieldGroup>
+              <Label>Briefing <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <Textarea value={briefing} onChange={(e) => setBriefing(e.target.value)} placeholder="Descreva o contexto e necessidades do projeto..." style={{ minHeight: 120 }} />
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>Objetivos <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <Input 
+                  value={objectiveInput} 
+                  onChange={(e) => setObjectiveInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = objectiveInput.trim()
+                      if (val && !objectives.includes(val)) {
+                        setObjectives([...objectives, val])
+                        setObjectiveInput('')
+                      }
+                    }
+                  }}
+                  placeholder="Digite um objetivo e pressione Enter" 
+                />
+                <Button 
+                  type="button" 
+                  data-variant="ghost" 
+                  data-size="sm"
+                  onClick={() => {
                     const val = objectiveInput.trim()
                     if (val && !objectives.includes(val)) {
                       setObjectives([...objectives, val])
                       setObjectiveInput('')
                     }
-                  }
-                }}
-                placeholder="Digite um objetivo e pressione Enter" 
-              />
-              <Button 
-                type="button" 
-                data-variant="ghost" 
-                data-size="sm"
-                onClick={() => {
-                  const val = objectiveInput.trim()
-                  if (val && !objectives.includes(val)) {
-                    setObjectives([...objectives, val])
-                    setObjectiveInput('')
-                  }
-                }}
-              >
-                <Plus style={{ width: 14, height: 14 }} />
-              </Button>
-            </div>
-            {objectives.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {objectives.map((obj, idx) => (
-                  <div key={idx} style={{ 
-                    background: '#f3f4f6', 
-                    padding: '4px 8px', 
-                    borderRadius: 6, 
-                    fontSize: 13,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}>
-                    {obj}
-                    <button
-                      type="button"
-                      onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))}
-                      style={{ 
-                        border: 'none', 
-                        background: 'transparent', 
-                        cursor: 'pointer', 
-                        color: '#9ca3af',
-                        padding: 0,
-                        display: 'flex'
-                      }}
-                    >
-                      <Trash2 style={{ width: 12, height: 12 }} />
-                    </button>
-                  </div>
-                ))}
+                  }}
+                >
+                  <Plus style={{ width: 14, height: 14 }} />
+                </Button>
               </div>
-            )}
-          </FieldGroup>
-          <Row>
-            <FieldGroup>
-              <Label>Público-alvo <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-              <Input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Ex: Empresas B2B" />
+              {objectives.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {objectives.map((obj, idx) => (
+                    <div key={idx} style={{ 
+                      background: 'linear-gradient(135deg, #8fd8ff, #6366f1)', 
+                      color: '#131313',
+                      padding: '6px 10px', 
+                      borderRadius: 6, 
+                      fontSize: 12,
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      {obj}
+                      <button
+                        type="button"
+                        onClick={() => setObjectives(objectives.filter((_, i) => i !== idx))}
+                        style={{ 
+                          border: 'none', 
+                          background: 'transparent', 
+                          cursor: 'pointer', 
+                          color: '#131313',
+                          padding: 0,
+                          display: 'flex',
+                          opacity: 0.7
+                        }}
+                      >
+                        <Trash2 style={{ width: 12, height: 12 }} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </FieldGroup>
+
+            <Row>
+              <FieldGroup>
+                <Label>Público-alvo <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+                <Input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Ex: Empresas B2B" />
+              </FieldGroup>
+              <FieldGroup>
+                <Label>Orçamento (R$) <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+                <Input type="number" step="0.01" min="0" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" />
+              </FieldGroup>
+            </Row>
+          </StepContent>
+
+          {/* Step 3: Status & Tarefas */}
+          <StepContent $show={currentStep === 3}>
+            <div>
+              <StepTitle>Status & Tarefas Iniciais</StepTitle>
+              <StepDescription>
+                Defina o status inicial do projeto e crie as primeiras tarefas se desejar.
+              </StepDescription>
+            </div>
+
             <FieldGroup>
-              <Label>Orçamento (R$) <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-              <Input type="number" step="0.01" min="0" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" />
+              <Label>Status do Projeto</Label>
+              <Select value={projectStatus} onChange={(e) => setProjectStatus(e.target.value as any)}>
+                <option value="PLANNING">Planejamento</option>
+                <option value="IN_PROGRESS">Em Andamento</option>
+                <option value="ON_HOLD">Pausado</option>
+                <option value="COMPLETED">Concluído</option>
+                <option value="CANCELLED">Cancelado</option>
+              </Select>
             </FieldGroup>
-          </Row>
-          <FieldGroup>
-            <Label>Status do Projeto</Label>
-            <Select value={projectStatus} onChange={(e) => setProjectStatus(e.target.value as any)}>
-              <option value="PLANNING">Planejamento</option>
-              <option value="IN_PROGRESS">Em Andamento</option>
-              <option value="ON_HOLD">Pausado</option>
-              <option value="COMPLETED">Concluído</option>
-              <option value="CANCELLED">Cancelado</option>
-            </Select>
-          </FieldGroup>
 
-          <SectionDivider />
-          <FieldGroup>
-            <Label style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CheckSquare style={{ width: 12 }} />Tarefas iniciais <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-            <Hint>Crie as tarefas do projeto agora. Elas aparecerão no Kanban.</Hint>
-          </FieldGroup>
+            <FieldGroup>
+              <Label style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CheckSquare style={{ width: 12 }} />Tarefas iniciais <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+              <Hint>Crie as tarefas do projeto agora. Elas aparecerão no Kanban.</Hint>
+              </FieldGroup>
 
-          {tasks.map((t, idx) => (
+            {tasks.map((t, idx) => (
             <TaskBox key={idx}>
               <TaskBoxHeader>
                 <TaskBoxNum><CheckSquare style={{ width: 12 }} />Tarefa #{idx + 1}</TaskBoxNum>
@@ -1225,31 +1531,103 @@ export function ProjetosPage() {
                 <Label>Colaboradores</Label>
                 {collabs.length === 0 ? <Hint>Cadastre COLABORADOR em Usuários primeiro.</Hint> : (
                   <div style={{ display: 'grid', gap: 6 }}>
-                    {collabs.map((c) => (
-                      <AssignItem key={c.id}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.email}</div>
-                        </div>
-                        <input type="checkbox" checked={t.assigneeIds.includes(c.id)}
-                          onChange={() => setTasks((cur) => cur.map((x, i) => { if (i !== idx) return x; const has = x.assigneeIds.includes(c.id); return { ...x, assigneeIds: has ? x.assigneeIds.filter((id) => id !== c.id) : [...x.assigneeIds, c.id] } }))}
-                          aria-label={`Atribuir ${c.name}`} />
-                      </AssignItem>
-                    ))}
+                    {sectors.length > 0 && (
+                      <CollabFilterBar>
+                        <CollabFilterBtn type="button" $active={collabSectorFilter === ''} onClick={() => setCollabSectorFilter('')}>
+                          Todos
+                        </CollabFilterBtn>
+                        {sectors.map((s) => (
+                          <CollabFilterBtn type="button" key={s.id} $active={collabSectorFilter === s.id} onClick={() => setCollabSectorFilter(s.id === collabSectorFilter ? '' : s.id)}>
+                            {s.name}
+                          </CollabFilterBtn>
+                        ))}
+                      </CollabFilterBar>
+                    )}
+                    {collabs
+                      .filter((c) => !collabSectorFilter || (c.sectors ?? []).some((s) => s.id === collabSectorFilter))
+                      .map((c) => (
+                        <AssignItem key={c.id}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.email}</div>
+                            {(c.sectors ?? []).length > 0 && (
+                              <CollabSectorTags>
+                                {(c.sectors ?? []).map((s) => (
+                                  <CollabSectorTag key={s.id}>{s.name}</CollabSectorTag>
+                                ))}
+                              </CollabSectorTags>
+                            )}
+                          </div>
+                          <input type="checkbox" checked={t.assigneeIds.includes(c.id)}
+                            onChange={() => setTasks((cur) => cur.map((x, i) => { if (i !== idx) return x; const has = x.assigneeIds.includes(c.id); return { ...x, assigneeIds: has ? x.assigneeIds.filter((id) => id !== c.id) : [...x.assigneeIds, c.id] } }))}
+                            aria-label={`Atribuir ${c.name}`} />
+                        </AssignItem>
+                      ))}
+                    {collabSectorFilter && collabs.filter((c) => (c.sectors ?? []).some((s) => s.id === collabSectorFilter)).length === 0 && (
+                      <Hint>Nenhum colaborador neste setor.</Hint>
+                    )}
                   </div>
                 )}
               </FieldGroup>
             </TaskBox>
-          ))}
+            ))}
 
-          <Button type="button" data-variant="ghost" data-size="sm"
-            onClick={() => setTasks((cur) => [...cur, { title: '', description: '', priority: 'MEDIUM', dueDate: '', labelsText: '', assigneeIds: [] }])}
-            style={{ border: '1.5px dashed #e4e4e7', width: '100%' }}>
-            <Plus style={{ width: 14, height: 14 }} />Adicionar tarefa
-          </Button>
+            <Button type="button" data-variant="ghost" data-size="sm"
+              onClick={() => setTasks((cur) => [...cur, { title: '', description: '', priority: 'MEDIUM', dueDate: '', labelsText: '', assigneeIds: [] }])}
+              style={{ border: '1.5px dashed rgba(255, 255, 255, 0.1)', width: '100%' }}>
+              <Plus style={{ width: 14, height: 14 }} />Adicionar tarefa
+            </Button>
+          </StepContent>
 
           {error && <ErrorMsg>{error}</ErrorMsg>}
         </FormBody>
+
+        {/* Navigation Buttons */}
+        <NavigationButtons>
+          <div>
+            {currentStep > 1 && (
+              <NavButton type="button" onClick={previousStep}>
+                <ChevronLeft />
+                Anterior
+              </NavButton>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {currentStep < 3 ? (
+              <NavButton 
+                type="button" 
+                onClick={nextStep} 
+                $variant="primary"
+                disabled={currentStep === 1 && !canProceedStep1}
+              >
+                Próximo
+                <ChevronRight />
+              </NavButton>
+            ) : (
+              <>
+                <NavButton 
+                  type="button" 
+                  onClick={() => { 
+                    setCreateOpen(false); 
+                    setError(''); 
+                    setCurrentStep(1);
+                  }}
+                >
+                  Cancelar
+                </NavButton>
+                <NavButton 
+                  type="submit" 
+                  form="create-project-form"
+                  $variant="primary"
+                  disabled={saving || !title.trim() || !clientId}
+                >
+                  {saving ? 'Criando…' : 'Criar Projeto'}
+                </NavButton>
+              </>
+            )}
+          </div>
+        </NavigationButtons>
       </Modal>
 
       <Modal open={linksOpen} onClose={() => { setLinksOpen(false); setLinksProject(null); setLinks([]); startAddLink() }}

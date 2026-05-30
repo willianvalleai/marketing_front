@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { projectsService } from '@/shared/services/projects.service'
 import { tasksService } from '@/shared/services/tasks.service'
-import type { Project, Task } from '@/shared/types'
+import { sectorsService } from '@/shared/services/sectors.service'
+import { usersService } from '@/shared/services/users.service'
+import type { Project, Sector, Task, User } from '@/shared/types'
 import {
   FolderOpen,
   CheckCircle2,
@@ -11,6 +13,7 @@ import {
   CircleDashed,
   TrendingUp,
   ArrowRight,
+  Layers,
 } from 'lucide-react'
 
 /* ── Stat Card ─────────────────────────────────── */
@@ -233,12 +236,184 @@ const Empty = styled.div`
   color: ${({ theme }) => theme.colors.textMuted};
 `
 
+/* ── Sectors Section ─────────────────────────── */
+const sectorPulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+`
+
+const SectorsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`
+
+const SectionHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`
+
+const SectionHeading = styled.h3`
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e2e2;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    color: #8fd8ff;
+  }
+`
+
+const SectionSubtitle = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: #8b90a0;
+  margin: 0;
+`
+
+const SectorsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+`
+
+const SECTOR_GRADIENTS = [
+  ['linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', 'rgba(99,102,241,0.15)', 'rgba(99,102,241,0.3)'],
+  ['linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', 'rgba(59,130,246,0.15)', 'rgba(59,130,246,0.3)'],
+  ['linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)', 'rgba(6,182,212,0.15)', 'rgba(6,182,212,0.3)'],
+  ['linear-gradient(135deg, #10b981 0%, #06b6d4 100%)', 'rgba(16,185,129,0.15)', 'rgba(16,185,129,0.3)'],
+  ['linear-gradient(135deg, #f59e0b 0%, #f97316 100%)', 'rgba(245,158,11,0.15)', 'rgba(245,158,11,0.3)'],
+  ['linear-gradient(135deg, #ef4444 0%, #f97316 100%)', 'rgba(239,68,68,0.15)', 'rgba(239,68,68,0.3)'],
+  ['linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)', 'rgba(139,92,246,0.15)', 'rgba(139,92,246,0.3)'],
+  ['linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)', 'rgba(236,72,153,0.15)', 'rgba(236,72,153,0.3)'],
+]
+
+const SectorCard = styled.div<{ $bg: string; $border: string }>`
+  background: rgba(20, 20, 25, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid ${({ $border }) => $border};
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${({ $bg }) => $bg};
+    border-radius: 16px 16px 0 0;
+  }
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    border-color: ${({ $border }) => $border};
+    filter: brightness(1.08);
+  }
+`
+
+const SectorIconWrap = styled.div<{ $gradient: string; $faint: string }>`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: ${({ $faint }) => $faint};
+  border: 1px solid ${({ $gradient }) => $gradient.replace('0.15', '0.25')};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+    opacity: 0.9;
+  }
+`
+
+const SectorCardName = styled.div`
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e2e2;
+  line-height: 1.3;
+`
+
+const SectorCardMeta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`
+
+const SectorCollabCount = styled.div`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: #8b90a0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`
+
+const SectorAvatarsRow = styled.div`
+  display: flex;
+  align-items: center;
+`
+
+const SectorAvatar = styled.div<{ $idx: number; $gradient: string }>`
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: ${({ $gradient }) => $gradient};
+  border: 2px solid rgba(20, 20, 25, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  color: white;
+  margin-left: ${({ $idx }) => $idx > 0 ? '-6px' : '0'};
+  position: relative;
+  z-index: ${({ $idx }) => 10 - $idx};
+  flex-shrink: 0;
+`
+
+const SectorEmptyState = styled.div`
+  grid-column: 1 / -1;
+  padding: 40px 24px;
+  text-align: center;
+  background: rgba(20, 20, 25, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #8b90a0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+`
+
 export function HomePage() {
   const { user } = useAuth()
   const isCliente = user?.role === 'CLIENTE'
+  const isAdmin = user?.role === 'ADMIN'
   const [projects, setProjects] = useState<Project[]>([])
   const [myTasks, setMyTasks] = useState<Task[]>([])
   const [clientDash, setClientDash] = useState<any>(null)
+  const [sectors, setSectors] = useState<Sector[]>([])
+  const [allUsers, setAllUsers] = useState<User[]>([])
 
   useEffect(() => {
     if (isCliente) {
@@ -251,7 +426,11 @@ export function HomePage() {
     }
     projectsService.list().then(setProjects).catch(() => setProjects([]))
     tasksService.listMine().then(setMyTasks).catch(() => setMyTasks([]))
-  }, [isCliente])
+    sectorsService.list().then(setSectors).catch(() => setSectors([]))
+    if (isAdmin) {
+      usersService.list().then((u) => setAllUsers(u.filter((x) => x.role === 'COLABORADOR'))).catch(() => setAllUsers([]))
+    }
+  }, [isCliente, isAdmin])
 
   const done      = useMemo(() => (isCliente ? (clientDash?.tasksByStatus?.DONE ?? 0) : myTasks.filter((t) => t.status === 'DONE').length), [myTasks, isCliente, clientDash])
   const progress  = useMemo(() => (isCliente ? (clientDash?.tasksByStatus?.IN_PROGRESS ?? 0) : myTasks.filter((t) => t.status === 'IN_PROGRESS').length), [myTasks, isCliente, clientDash])
@@ -269,6 +448,15 @@ export function HomePage() {
   const STATUS_LABEL: Record<string, string> = {
     TODO: 'A fazer', IN_PROGRESS: 'Em progresso', REVIEW: 'Revisão', DONE: 'Concluído',
   }
+
+  // Mapeia colaboradores por setor
+  const collabsBySector = useMemo(() => {
+    const m = new Map<string, User[]>()
+    for (const s of sectors) {
+      m.set(s.id, allUsers.filter((u) => (u.sectors ?? []).some((us) => us.id === s.id)))
+    }
+    return m
+  }, [sectors, allUsers])
 
   return (
     <Grid>
@@ -382,6 +570,69 @@ export function HomePage() {
           )}
         </Panel>
       </TwoCol>
+
+      {/* Setores — visível para Admin e Colaborador */}
+      {!isCliente && (
+        <SectorsSection>
+          <SectionHeaderRow>
+            <div>
+              <SectionHeading>
+                <Layers />
+                Setores
+              </SectionHeading>
+              <SectionSubtitle style={{ marginTop: 4 }}>
+                {isAdmin
+                  ? `${sectors.length} setor${sectors.length !== 1 ? 'es' : ''} cadastrado${sectors.length !== 1 ? 's' : ''} na plataforma`
+                  : 'Setores ativos na plataforma'}
+              </SectionSubtitle>
+            </div>
+          </SectionHeaderRow>
+
+          <SectorsGrid>
+            {sectors.length === 0 ? (
+              <SectorEmptyState>
+                Nenhum setor cadastrado ainda.{isAdmin ? ' Acesse Usuários › Setores para criar.' : ''}
+              </SectorEmptyState>
+            ) : (
+              sectors.map((s, idx) => {
+                const [gradient, faint, border] = SECTOR_GRADIENTS[idx % SECTOR_GRADIENTS.length]
+                const sectorCollabs = collabsBySector.get(s.id) ?? []
+                return (
+                  <SectorCard key={s.id} $bg={gradient} $border={border}>
+                    <SectorIconWrap $gradient={faint} $faint={faint}>
+                      <Layers />
+                    </SectorIconWrap>
+
+                    <SectorCardName>{s.name}</SectorCardName>
+
+                    <SectorCardMeta>
+                      <SectorCollabCount>
+                        {isAdmin
+                          ? `${sectorCollabs.length} colaborador${sectorCollabs.length !== 1 ? 'es' : ''}`
+                          : ''}
+                      </SectorCollabCount>
+                      {isAdmin && sectorCollabs.length > 0 && (
+                        <SectorAvatarsRow>
+                          {sectorCollabs.slice(0, 4).map((c, i) => (
+                            <SectorAvatar key={c.id} $idx={i} $gradient={gradient} title={c.name}>
+                              {c.name.charAt(0).toUpperCase()}
+                            </SectorAvatar>
+                          ))}
+                          {sectorCollabs.length > 4 && (
+                            <SectorAvatar $idx={4} $gradient="rgba(139,144,160,0.4)" title={`+${sectorCollabs.length - 4} mais`}>
+                              +{sectorCollabs.length - 4}
+                            </SectorAvatar>
+                          )}
+                        </SectorAvatarsRow>
+                      )}
+                    </SectorCardMeta>
+                  </SectorCard>
+                )
+              })
+            )}
+          </SectorsGrid>
+        </SectorsSection>
+      )}
     </Grid>
   )
 }

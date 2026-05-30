@@ -1,5 +1,10 @@
 export type Role = 'ADMIN' | 'COLABORADOR' | 'CLIENTE'
 
+export interface Sector {
+  id: string
+  name: string
+}
+
 export interface User {
   id: string
   name: string
@@ -9,6 +14,7 @@ export interface User {
   company?: string | null
   notes?: string | null
   isActive?: boolean
+  sectors?: Sector[]
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'INTERNAL_REVIEW' | 'CHANGES_REQUESTED' | 'CLIENT_REVIEW' | 'DONE'
@@ -31,7 +37,7 @@ export interface TaskAssignee {
   userId: string
   assignedAt: string
   doneAt: string | null
-  user: User
+  user?: { id: string; name: string; email?: string; role?: string }
 }
 
 export interface ChecklistItem {

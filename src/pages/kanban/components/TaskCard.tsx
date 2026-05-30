@@ -290,11 +290,14 @@ export function TaskCard({
         <CardFooter>
           <Assignees>
             {task.assignees && task.assignees.length > 0 ? (
-              task.assignees.slice(0, 3).map((assignee, idx) => (
-                <Avatar key={assignee.id} $index={idx} title={assignee.name}>
-                  {assignee.name.charAt(0).toUpperCase()}
-                </Avatar>
-              ))
+              task.assignees.slice(0, 3).map((assignee, idx) => {
+                const name = assignee.user?.name ?? ''
+                return (
+                  <Avatar key={assignee.userId} $index={idx} title={name}>
+                    {name ? name.charAt(0).toUpperCase() : '?'}
+                  </Avatar>
+                )
+              })
             ) : (
               <Avatar $index={0}>?</Avatar>
             )}
