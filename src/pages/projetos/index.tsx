@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { tasksService } from '@/shared/services/tasks.service'
+import { createPortal } from 'react-dom'
 import styled, { keyframes } from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { projectsService } from '@/shared/services/projects.service'
 import { usersService } from '@/shared/services/users.service'
 import { assetsService } from '@/shared/services/assets.service'
-import type { Asset, Project, Sector, TaskPriority, User } from '@/shared/types'
+import type { Asset, Project, Sector, TaskPriority, ProjectStatus, User } from '@/shared/types'
 import { sectorsService } from '@/shared/services/sectors.service'
 import { Input, Textarea } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
@@ -12,11 +14,14 @@ import { Button } from '@/shared/components/ui/Button'
 import { Modal } from '@/shared/components/ui/Modal'
 import {
   Plus, Trash2, FolderOpen, Users as UsersIcon,
-  Link as LinkIcon, Pencil, CheckSquare, Search, ChevronRight, MoreVertical,
+  Link as LinkIcon, Pencil, CheckSquare, ChevronRight, MoreVertical,
   ChevronLeft, Check,
 } from 'lucide-react'
 import { ClientProjectsPage } from './client'
 import { getErrorMessage } from '@/shared/services/api'
+
+const PROJECTS_SYNC_EVENT = 'projects:sync'
+const PROJECTS_SYNC_STORAGE_KEY = 'projects:sync:ts'
 
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(12px); }
@@ -552,6 +557,50 @@ const Label = styled.label`
   letter-spacing: 0.05em;
 `
 
+const ClientQuickPickWrap = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+const ClientQuickPickHint = styled.span`
+  font-size: 11px;
+  color: #8b90a0;
+`
+
+const ClientSuggestions = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  background: rgba(18, 18, 18, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+`
+
+const ClientSuggestionItem = styled.button`
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #e2e2e2;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
+`
+
 /* ── Multistep Modal Components ────────────────────────────────── */
 const StepsIndicator = styled.div`
   display: flex;
@@ -659,6 +708,69 @@ const StepDescription = styled.p`
   line-height: 1.6;
 `
 
+const ConfirmCloseOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+`
+
+const ConfirmCloseBox = styled.div`
+  background: #1a1d27;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 400px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+`
+
+const ConfirmCloseTitle = styled.h3`
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+`
+
+const ConfirmCloseBody = styled.p`
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.6;
+`
+
+const ConfirmCloseButtons = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+`
+
+const ConfirmCloseBtn = styled.button<{ $variant: 'cancel' | 'confirm' }>`
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${({ $variant }) => $variant === 'confirm' ? '#ef4444' : 'rgba(255,255,255,0.07)'};
+  color: ${({ $variant }) => $variant === 'confirm' ? '#fff' : '#cbd5e1'};
+  &:hover {
+    background: ${({ $variant }) => $variant === 'confirm' ? '#dc2626' : 'rgba(255,255,255,0.12)'};
+  }
+`
+
 const NavigationButtons = styled.div`
   display: flex;
   justify-content: space-between;
@@ -738,12 +850,6 @@ const ErrorMsg = styled.p`
   color: ${({ theme }) => theme.colors.danger};
   margin: 0;
   font-weight: ${({ theme }) => theme.weights.medium};
-`
-
-const SectionDivider = styled.div`
-  height: 1px;
-  background: ${({ theme }) => theme.colors.border};
-  margin: 8px 0;
 `
 
 const TaskBox = styled.div`
@@ -970,24 +1076,25 @@ export function ProjetosPage() {
   const [collabs, setCollabs] = useState<User[]>([])
   const [sectors, setSectors] = useState<Sector[]>([])
   const [collabSectorFilter, setCollabSectorFilter] = useState('')
-  const [q, setQ] = useState('')
-  const [clientFilter, setClientFilter] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'planning' | 'in_progress' | 'archived'>('all')
   const [sortBy, setSortBy] = useState('recent')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   
   const [createOpen, setCreateOpen] = useState(false)
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [clientId, setClientId] = useState('')
+  const [clientMentionInput, setClientMentionInput] = useState('')
+  const [showClientSuggestions, setShowClientSuggestions] = useState(false)
   const [briefing, setBriefing] = useState('')
   const [objectives, setObjectives] = useState<string[]>([])
   const [objectiveInput, setObjectiveInput] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
   const [budget, setBudget] = useState('')
-  const [projectStatus, setProjectStatus] = useState<'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'>('PLANNING')
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus>('PLANNING')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -996,11 +1103,13 @@ export function ProjetosPage() {
   const [eTitle, setETitle] = useState('')
   const [eDescription, setEDescription] = useState('')
   const [eClientId, setEClientId] = useState('')
+  const [eClientMentionInput, setEClientMentionInput] = useState('')
+  const [eShowClientSuggestions, setEShowClientSuggestions] = useState(false)
   const [eBriefing, setEBriefing] = useState('')
   const [eObjectives, setEObjectives] = useState<string[]>([])
   const [eObjectiveInput, setEObjectiveInput] = useState('')
   const [eTargetAudience, setETargetAudience] = useState('')
-  const [eProjectStatus, setEProjectStatus] = useState<'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'>('PLANNING')
+  const [eProjectStatus, setEProjectStatus] = useState<ProjectStatus>('PLANNING')
   const [eBudget, setEBudget] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
@@ -1034,19 +1143,51 @@ export function ProjetosPage() {
 
   useEffect(() => { void load() }, [isAdmin]) // eslint-disable-line
 
+  useEffect(() => {
+    const onSync = () => { void load() }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === PROJECTS_SYNC_STORAGE_KEY) void load()
+    }
+
+    window.addEventListener(PROJECTS_SYNC_EVENT, onSync as EventListener)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener(PROJECTS_SYNC_EVENT, onSync as EventListener)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [isAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getTaskProgressWeight = (status?: string) => {
+    switch (status) {
+      case 'DONE':
+        return 1
+      case 'CLIENT_REVIEW':
+        return 0.9
+      case 'INTERNAL_REVIEW':
+        return 0.75
+      case 'CHANGES_REQUESTED':
+        return 0.4
+      case 'IN_PROGRESS':
+        return 0.4
+      case 'TODO':
+      default:
+        return 0
+    }
+  }
+
   const progressMap = useMemo(() => {
     const m = new Map<string, number>()
     for (const p of projects) {
       if (!p.tasks?.length) { m.set(p.id, 0); continue }
-      m.set(p.id, Math.round((p.tasks.filter((t) => t.status === 'DONE').length / p.tasks.length) * 100))
+      const weighted = p.tasks.reduce((acc, task) => acc + getTaskProgressWeight(task.status), 0)
+      m.set(p.id, Math.round((weighted / p.tasks.length) * 100))
     }
     return m
   }, [projects])
 
   const visibleProjects = useMemo(() => {
-    const s = q.trim().toLowerCase()
+    const s = ''
     let filtered = projects.filter((p) => {
-      if (clientFilter && p.clientId !== clientFilter) return false
       if (!s) return true
       return (p.title ?? '').toLowerCase().includes(s) || (p.client?.name ?? '').toLowerCase().includes(s)
     })
@@ -1061,12 +1202,14 @@ export function ProjetosPage() {
     }
     
     return filtered
-  }, [projects, q, clientFilter, activeTab])
+  }, [projects, activeTab])
 
   const openCreateModal = () => {
     setTitle('')
     setDescription('')
     setClientId('')
+    setClientMentionInput('')
+    setShowClientSuggestions(false)
     setBriefing('')
     setObjectives([])
     setObjectiveInput('')
@@ -1087,14 +1230,13 @@ export function ProjetosPage() {
   }
 
   const canProceedStep1 = title.trim() && clientId
-  const canProceedStep2 = true // Step 2 tem apenas campos opcionais
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isAdmin) return
     setError(''); setSaving(true)
     try {
-      await projectsService.create({
+      const project = await projectsService.create({
         title: title.trim(),
         description: description.trim() || undefined,
         clientId,
@@ -1103,12 +1245,35 @@ export function ProjetosPage() {
         targetAudience: targetAudience.trim() || undefined,
         budget: budget ? parseFloat(budget) : undefined,
         projectStatus,
-        tasks: tasks.map((t) => ({ title: t.title.trim(), description: t.description.trim() || undefined, priority: t.priority, dueDate: t.dueDate || undefined, labels: parseLabels(t.labelsText), assigneeIds: t.assigneeIds })).filter((t) => t.title.length > 0),
       })
+
+      const validTasks = tasks.filter((t) => t.title.trim().length > 0)
+      for (const t of validTasks) {
+        await tasksService.create({
+          title: t.title.trim(),
+          description: t.description.trim() || undefined,
+          projectId: project.id,
+          priority: t.priority,
+          dueDate: t.dueDate || undefined,
+          labels: parseLabels(t.labelsText),
+          assigneeIds: t.assigneeIds,
+        })
+      }
+
       setCreateOpen(false)
+      resetCreateForm()
       await load()
     } catch { setError('Erro ao criar projeto.') }
     finally { setSaving(false) }
+  }
+
+  const resetCreateForm = () => {
+    setTitle(''); setDescription(''); setClientId(''); setBriefing('')
+    setClientMentionInput(''); setShowClientSuggestions(false)
+    setObjectives([]); setObjectiveInput(''); setTargetAudience(''); setBudget('')
+    setProjectStatus('PLANNING'); setCurrentStep(1)
+    setTasks([{ title: '', description: '', priority: 'MEDIUM', dueDate: '', labelsText: '', assigneeIds: [] }])
+    setError('')
   }
 
   const canManageLink = (a: Asset) => !user ? false : user.role === 'ADMIN' || a.uploadedById === user.id
@@ -1138,6 +1303,8 @@ export function ProjetosPage() {
     setETitle(p.title ?? '')
     setEDescription(p.description ?? '')
     setEClientId(p.clientId ?? '')
+    setEClientMentionInput('')
+    setEShowClientSuggestions(false)
     setEBriefing(p.briefing ?? '')
     setEObjectives(p.objectives ?? [])
     setEObjectiveInput('')
@@ -1163,6 +1330,31 @@ export function ProjetosPage() {
       setProjects((c) => c.map((x) => x.id === upd.id ? upd : x)); setEditOpen(false); setEditingProject(null)
     } finally { setSavingEdit(false) }
   }
+
+  const parseMentionSearch = (value: string) => {
+    const atIndex = value.lastIndexOf('@')
+    if (atIndex === -1) return null
+    const query = value.slice(atIndex + 1).trim()
+    return query
+  }
+
+  const clientSuggestions = useMemo(() => {
+    const query = parseMentionSearch(clientMentionInput)
+    if (query === null || !query) return []
+    const qLower = query.toLowerCase()
+    return clients
+      .filter((c) => c.name.toLowerCase().includes(qLower) || c.email.toLowerCase().includes(qLower))
+      .slice(0, 6)
+  }, [clientMentionInput, clients])
+
+  const editClientSuggestions = useMemo(() => {
+    const query = parseMentionSearch(eClientMentionInput)
+    if (query === null || !query) return []
+    const qLower = query.toLowerCase()
+    return clients
+      .filter((c) => c.name.toLowerCase().includes(qLower) || c.email.toLowerCase().includes(qLower))
+      .slice(0, 6)
+  }, [eClientMentionInput, clients])
 
   return (
     <PageWrap>
@@ -1308,15 +1500,45 @@ export function ProjetosPage() {
 
       <Modal 
         open={createOpen} 
-        onClose={() => { 
-          setCreateOpen(false); 
-          setError(''); 
-          setCurrentStep(1);
+        onClose={() => {
+          if (title || description || briefing) {
+            setConfirmCloseOpen(true)
+          } else {
+            setCreateOpen(false)
+            resetCreateForm()
+          }
         }}
         title=""
         hideHeader
         footer={null}
       >
+        {/* Close button manual (hideHeader ativo) */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 20px 0' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (title || description || briefing) {
+                setConfirmCloseOpen(true)
+              } else {
+                setCreateOpen(false)
+                resetCreateForm()
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: 22,
+              cursor: 'pointer',
+              lineHeight: 1,
+              padding: '0 4px',
+            }}
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+
         {/* Step Indicator */}
         <StepsIndicator>
           <StepItem $active={currentStep === 1} $completed={currentStep > 1}>
@@ -1324,9 +1546,9 @@ export function ProjetosPage() {
               {currentStep > 1 ? <Check /> : '1'}
             </StepNumber>
             <StepLabel $active={currentStep === 1} $completed={currentStep > 1}>
-              Informações Básicas
+              Informações
             </StepLabel>
-            {currentStep < 3 && <StepLine $completed={currentStep > 1} />}
+            <StepLine $completed={currentStep > 1} />
           </StepItem>
 
           <StepItem $active={currentStep === 2} $completed={currentStep > 2}>
@@ -1334,9 +1556,9 @@ export function ProjetosPage() {
               {currentStep > 2 ? <Check /> : '2'}
             </StepNumber>
             <StepLabel $active={currentStep === 2} $completed={currentStep > 2}>
-              Briefing & Objetivos
+              Briefing
             </StepLabel>
-            {currentStep < 3 && <StepLine $completed={currentStep > 2} />}
+            <StepLine $completed={currentStep > 2} />
           </StepItem>
 
           <StepItem $active={currentStep === 3} $completed={false}>
@@ -1344,7 +1566,7 @@ export function ProjetosPage() {
               3
             </StepNumber>
             <StepLabel $active={currentStep === 3} $completed={false}>
-              Status & Tarefas
+              Tarefas
             </StepLabel>
           </StepItem>
         </StepsIndicator>
@@ -1372,6 +1594,46 @@ export function ProjetosPage() {
 
             <FieldGroup>
               <Label>Cliente *</Label>
+              <ClientQuickPickWrap>
+                <Input
+                  value={clientMentionInput}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setClientMentionInput(value)
+                    const query = parseMentionSearch(value)
+                    setShowClientSuggestions(Boolean(query))
+                  }}
+                  onFocus={() => {
+                    const query = parseMentionSearch(clientMentionInput)
+                    setShowClientSuggestions(Boolean(query))
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowClientSuggestions(false), 120)
+                  }}
+                  placeholder="Digite @nome do cliente para buscar rápido (opcional)"
+                />
+                {showClientSuggestions && clientSuggestions.length > 0 && (
+                  <ClientSuggestions>
+                    {clientSuggestions.map((c) => (
+                      <ClientSuggestionItem
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setClientId(c.id)
+                          setClientMentionInput(`@${c.name}`)
+                          setShowClientSuggestions(false)
+                        }}
+                      >
+                        <span>{c.name}</span>
+                        <span style={{ color: '#8b90a0', fontSize: 11 }}>{c.email}</span>
+                      </ClientSuggestionItem>
+                    ))}
+                  </ClientSuggestions>
+                )}
+                <ClientQuickPickHint>
+                  Busca rápida por menção. O select abaixo continua disponível.
+                </ClientQuickPickHint>
+              </ClientQuickPickWrap>
               <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
                 <option value="">Selecione o cliente...</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1611,7 +1873,7 @@ export function ProjetosPage() {
                   onClick={() => { 
                     setCreateOpen(false); 
                     setError(''); 
-                    setCurrentStep(1);
+                    resetCreateForm();
                   }}
                 >
                   Cancelar
@@ -1629,6 +1891,30 @@ export function ProjetosPage() {
           </div>
         </NavigationButtons>
       </Modal>
+
+      {confirmCloseOpen && createPortal(
+        <ConfirmCloseOverlay onMouseDown={() => setConfirmCloseOpen(false)}>
+          <ConfirmCloseBox onMouseDown={(e) => e.stopPropagation()}>
+            <ConfirmCloseTitle>Descartar alterações?</ConfirmCloseTitle>
+            <ConfirmCloseBody>
+              Você tem dados preenchidos no formulário. Se fechar agora, todas as informações serão perdidas.
+            </ConfirmCloseBody>
+            <ConfirmCloseButtons>
+              <ConfirmCloseBtn $variant="cancel" type="button" onClick={() => setConfirmCloseOpen(false)}>
+                Continuar editando
+              </ConfirmCloseBtn>
+              <ConfirmCloseBtn $variant="confirm" type="button" onClick={() => {
+                setConfirmCloseOpen(false)
+                setCreateOpen(false)
+                resetCreateForm()
+              }}>
+                Sim, descartar
+              </ConfirmCloseBtn>
+            </ConfirmCloseButtons>
+          </ConfirmCloseBox>
+        </ConfirmCloseOverlay>,
+        document.body
+      )}
 
       <Modal open={linksOpen} onClose={() => { setLinksOpen(false); setLinksProject(null); setLinks([]); startAddLink() }}
         title={linksProject ? `Links — ${linksProject.title}` : 'Links'}
@@ -1658,7 +1944,7 @@ export function ProjetosPage() {
         </LinksGrid>
       </Modal>
 
-      <Modal open={editOpen} onClose={() => { setEditOpen(false); setEditingProject(null) }}
+      <Modal open={editOpen} onClose={() => { setEditOpen(false); setEditingProject(null); setEClientMentionInput(''); setEShowClientSuggestions(false) }}
         title={editingProject ? `Editar: ${editingProject.title}` : 'Editar projeto'}
         footer={<>
           <Button data-variant="ghost" data-size="md" type="button" onClick={() => { setEditOpen(false); setEditingProject(null) }}>Cancelar</Button>
@@ -1666,7 +1952,50 @@ export function ProjetosPage() {
         </>}>
         <div style={{ display: 'grid', gap: 14 }}>
           <div><ModalFieldLabel>Título</ModalFieldLabel><Input value={eTitle} onChange={(e) => setETitle(e.target.value)} placeholder="Título do projeto" /></div>
-          <div><ModalFieldLabel>Cliente</ModalFieldLabel><Select value={eClientId} onChange={(e) => setEClientId(e.target.value)}><option value="">Selecione...</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></div>
+          <div>
+            <ModalFieldLabel>Cliente</ModalFieldLabel>
+            <ClientQuickPickWrap>
+              <Input
+                value={eClientMentionInput}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setEClientMentionInput(value)
+                  const query = parseMentionSearch(value)
+                  setEShowClientSuggestions(Boolean(query))
+                }}
+                onFocus={() => {
+                  const query = parseMentionSearch(eClientMentionInput)
+                  setEShowClientSuggestions(Boolean(query))
+                }}
+                onBlur={() => {
+                  setTimeout(() => setEShowClientSuggestions(false), 120)
+                }}
+                placeholder="Digite @nome do cliente para buscar rápido (opcional)"
+              />
+              {eShowClientSuggestions && editClientSuggestions.length > 0 && (
+                <ClientSuggestions>
+                  {editClientSuggestions.map((c) => (
+                    <ClientSuggestionItem
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setEClientId(c.id)
+                        setEClientMentionInput(`@${c.name}`)
+                        setEShowClientSuggestions(false)
+                      }}
+                    >
+                      <span>{c.name}</span>
+                      <span style={{ color: '#8b90a0', fontSize: 11 }}>{c.email}</span>
+                    </ClientSuggestionItem>
+                  ))}
+                </ClientSuggestions>
+              )}
+            </ClientQuickPickWrap>
+            <Select value={eClientId} onChange={(e) => setEClientId(e.target.value)}>
+              <option value="">Selecione...</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </div>
           <div><ModalFieldLabel>Descrição</ModalFieldLabel><Textarea value={eDescription} onChange={(e) => setEDescription(e.target.value)} placeholder="Descrição (opcional)" style={{ minHeight: 90 }} /></div>
           <div><ModalFieldLabel>Briefing</ModalFieldLabel><Textarea value={eBriefing} onChange={(e) => setEBriefing(e.target.value)} placeholder="Briefing do projeto (opcional)" style={{ minHeight: 100 }} /></div>
           <div>
@@ -1705,11 +2034,13 @@ export function ProjetosPage() {
             {eObjectives.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {eObjectives.map((obj, idx) => (
-                  <div key={idx} style={{ 
-                    background: '#f3f4f6', 
-                    padding: '4px 8px', 
-                    borderRadius: 6, 
-                    fontSize: 13,
+                  <div key={idx} style={{
+                    background: 'linear-gradient(135deg, #8fd8ff, #6366f1)',
+                    color: '#131313',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6
@@ -1718,13 +2049,14 @@ export function ProjetosPage() {
                     <button
                       type="button"
                       onClick={() => setEObjectives(eObjectives.filter((_, i) => i !== idx))}
-                      style={{ 
-                        border: 'none', 
-                        background: 'transparent', 
-                        cursor: 'pointer', 
-                        color: '#9ca3af',
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#131313',
                         padding: 0,
-                        display: 'flex'
+                        display: 'flex',
+                        opacity: 0.7
                       }}
                     >
                       <Trash2 style={{ width: 12, height: 12 }} />

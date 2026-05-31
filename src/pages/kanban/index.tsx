@@ -6,6 +6,7 @@ import { projectsService } from '@/shared/services/projects.service'
 import { tasksService } from '@/shared/services/tasks.service'
 import { usersService } from '@/shared/services/users.service'
 import { sectorsService } from '@/shared/services/sectors.service'
+
 import type { Project, Sector, Task, TaskPriority, TaskStatus } from '@/shared/types'
 import { Select } from '@/shared/components/ui/Select'
 import { Input } from '@/shared/components/ui/Input'
@@ -15,6 +16,8 @@ import { TaskDetailsModal } from './components/TaskDetailsModal'
 import { Plus, ChevronDown, Filter, Share2 } from 'lucide-react'
 
 const ALL_PROJECTS = '__all__'
+const PROJECTS_SYNC_EVENT = 'projects:sync'
+const PROJECTS_SYNC_STORAGE_KEY = 'projects:sync:ts'
 
 const PageLayout = styled.div`
   display: flex;
@@ -131,6 +134,66 @@ const ActionBtn = styled(Button)`
   }
 `
 
+/* ── Filter panel ───────────────────────── */
+const FilterPanel = styled.div`
+  background: rgba(25,25,25,0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 0 0 4px;
+`
+
+const FilterPanelRow = styled.div`
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+`
+
+const FilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`
+
+const FilterLabel = styled.label`
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+`
+
+const FilterSelect = styled.select`
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 7px 10px;
+  cursor: pointer;
+  outline: none;
+  &:focus { border-color: #6366f1; }
+  option { background: #1e1e2e; }
+`
+
+const FilterToggle = styled.button<{ $active: boolean }>`
+  border: 1px solid ${({ $active }) => $active ? '#6366f1' : 'rgba(255,255,255,0.1)'};
+  background: ${({ $active }) => $active ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)'};
+  color: ${({ $active }) => $active ? '#a5b4fc' : '#94a3b8'};
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover { border-color: #6366f1; color: #c7d2fe; }
+`
+
 /* ── Collapsible form ───────────────────── */
 const FormCard = styled.div<{ $open: boolean }>`
   background: rgba(25, 25, 25, 0.4);
@@ -239,6 +302,10 @@ export function KanbanPage() {
   const [users, setUsers] = useState<Array<{ id: string; name: string; email: string; role: string; sectors?: { id: string; name: string }[] }>>([])
   const [sectors, setSectors] = useState<Sector[]>([])
   const [sectorFilter, setSectorFilter] = useState<string>('')
+  const [priorityFilter, setPriorityFilter] = useState<string>('')
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('')
+  const [overdueOnly, setOverdueOnly] = useState(false)
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
 
@@ -252,23 +319,26 @@ export function KanbanPage() {
 
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
-  // deep-link: /kanban?task=<taskId>
+  const notifyProjectsSync = () => {
+    window.dispatchEvent(new CustomEvent(PROJECTS_SYNC_EVENT))
+    try {
+      localStorage.setItem(PROJECTS_SYNC_STORAGE_KEY, String(Date.now()))
+    } catch {
+      // ignore storage failures (private mode/quota)
+    }
+  }
+
+  // deep-link: /kanban?task=<taskId>&project=<projectId>
   useEffect(() => {
     const sp = new URLSearchParams(loc.search)
     const tid = sp.get('task')
+    const pid = sp.get('project')
     if (tid) setOpenTaskId(tid)
+    if (pid) setProjectId(pid)
   }, [loc.search])
 
   const selectedProject = useMemo(() => projects.find((p) => p.id === projectId) ?? null, [projects, projectId])
   void selectedProject // used to future label display
-
-  const projectMetaById = useMemo(() => {
-    const m: Record<string, { projectTitle: string; clientName: string }> = {}
-    for (const p of projects) {
-      m[p.id] = { projectTitle: p.title, clientName: p.client?.name ?? '—' }
-    }
-    return m
-  }, [projects])
 
   const loadProjects = async () => {
     const p = await projectsService.list().catch(() => [] as Project[])
@@ -300,8 +370,10 @@ export function KanbanPage() {
 
   const loadTasks = async (id: string) => {
     setLoading(true)
-    try { setTasks(await tasksService.listByProject(id)) }
-    finally { setLoading(false) }
+    try {
+      const ts = await tasksService.listByProject(id)
+      setTasks(ts)
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { if (canUse) { void loadProjects(); void loadUsers(); void loadSectors() } }, [canUse]) // eslint-disable-line
@@ -314,7 +386,10 @@ export function KanbanPage() {
   const moveTask = async (taskId: string, toStatus: TaskStatus) => {
     const prev = tasks
     setTasks((cur) => cur.map((t) => (t.id === taskId ? { ...t, status: toStatus } : t)))
-    try { await tasksService.update(taskId, { status: toStatus }) }
+    try {
+      await tasksService.update(taskId, { status: toStatus })
+      notifyProjectsSync()
+    }
     catch { setTasks(prev) }
   }
 
@@ -333,6 +408,7 @@ export function KanbanPage() {
         assigneeIds,
       })
       setTasks((cur) => [created, ...cur])
+      notifyProjectsSync()
       setTitle(''); setDescription(''); setPriority('MEDIUM'); setDueDate(''); setLabelsText(''); setAssigneeIds([])
       setFormOpen(false)
     } finally { setCreating(false) }
@@ -340,27 +416,50 @@ export function KanbanPage() {
 
   if (!canUse) return <NotAllowed>Kanban disponível apenas para Admin e Colaborador.</NotAllowed>
 
-  // Filtrar tasks por setor selecionado
+  const activeFilterCount = [sectorFilter, priorityFilter, assigneeFilter, overdueOnly ? '1' : ''].filter(Boolean).length
+
   const filteredTasks = useMemo(() => {
-    if (!sectorFilter) return tasks
-    return tasks.filter((t) => {
-      // Verifica assignees múltiplos
-      const assignees = t.assignees ?? []
-      const matchFromAssignees = assignees.some((a) => {
-        const u = users.find((u) => u.id === a.userId)
-        return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
+    let result = tasks
+
+    // setor filter (existing)
+    if (sectorFilter) {
+      result = result.filter((t) => {
+        const assignees = t.assignees ?? []
+        const matchFromAssignees = assignees.some((a) => {
+          const u = users.find((u) => u.id === a.userId)
+          return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
+        })
+        if (matchFromAssignees) return true
+        if (t.assignedToId) {
+          const u = users.find((u) => u.id === t.assignedToId)
+          return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
+        }
+        return false
       })
-      if (matchFromAssignees) return true
+    }
 
-      // Verifica assignedToId (atribuição única)
-      if (t.assignedToId) {
-        const u = users.find((u) => u.id === t.assignedToId)
-        return (u?.sectors ?? []).some((s) => s.id === sectorFilter)
-      }
+    // priority filter (new)
+    if (priorityFilter) {
+      result = result.filter((t) => t.priority === priorityFilter)
+    }
 
-      return false
-    })
-  }, [tasks, sectorFilter, users])
+    // assignee filter (new)
+    if (assigneeFilter) {
+      result = result.filter((t) =>
+        t.assignedToId === assigneeFilter ||
+        (t.assignees ?? []).some((a) => a.userId === assigneeFilter)
+      )
+    }
+
+    // overdue only (new)
+    if (overdueOnly) {
+      result = result.filter(
+        (t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'DONE'
+      )
+    }
+
+    return result
+  }, [tasks, sectorFilter, priorityFilter, assigneeFilter, overdueOnly, users])
 
   return (
     <PageLayout>
@@ -391,9 +490,14 @@ export function KanbanPage() {
               {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </PickerSelect>
           )}
-          <ActionBtn data-variant="secondary" data-size="sm">
+          <ActionBtn
+            data-variant="secondary"
+            data-size="sm"
+            onClick={() => setFilterPanelOpen((v) => !v)}
+            style={activeFilterCount > 0 ? { color: '#a5b4fc', borderColor: '#6366f1' } : undefined}
+          >
             <Filter style={{ width: 15, height: 15 }} />
-            Filter
+            Filtros{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
           </ActionBtn>
           <ActionBtn data-variant="secondary" data-size="sm">
             <Share2 style={{ width: 15, height: 15 }} />
@@ -413,6 +517,57 @@ export function KanbanPage() {
           )}
         </div>
       </TopBar>
+
+      {filterPanelOpen && (
+        <FilterPanel>
+          <FilterPanelRow>
+            <FilterGroup>
+              <FilterLabel>Prioridade</FilterLabel>
+              <FilterSelect value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                <option value="">Todas</option>
+                <option value="HIGH">Alta</option>
+                <option value="MEDIUM">Média</option>
+                <option value="LOW">Baixa</option>
+              </FilterSelect>
+            </FilterGroup>
+
+            <FilterGroup>
+              <FilterLabel>Colaborador</FilterLabel>
+              <FilterSelect value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)}>
+                <option value="">Todos</option>
+                {users.filter((u) => u.role === 'COLABORADOR').map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </FilterSelect>
+            </FilterGroup>
+
+            <FilterGroup>
+              <FilterLabel>Vencimento</FilterLabel>
+              <FilterToggle
+                $active={overdueOnly}
+                type="button"
+                onClick={() => setOverdueOnly((v) => !v)}
+              >
+                {overdueOnly ? '✓ ' : ''}Somente atrasadas
+              </FilterToggle>
+            </FilterGroup>
+
+            {activeFilterCount > 0 && (
+              <FilterGroup style={{ justifyContent: 'flex-end', marginLeft: 'auto' }}>
+                <FilterLabel style={{ opacity: 0 }}>–</FilterLabel>
+                <FilterToggle
+                  $active={false}
+                  type="button"
+                  onClick={() => { setPriorityFilter(''); setAssigneeFilter(''); setOverdueOnly(false) }}
+                  style={{ color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }}
+                >
+                  Limpar filtros
+                </FilterToggle>
+              </FilterGroup>
+            )}
+          </FilterPanelRow>
+        </FilterPanel>
+      )}
 
       {isAdmin && (
         <FormCard $open={formOpen}>
@@ -479,7 +634,6 @@ export function KanbanPage() {
               tasks={filteredTasks}
               onMoveTask={moveTask}
               onOpenTask={(id) => setOpenTaskId(id)}
-              projectMetaById={projectMetaById}
             />
         }
       </BoardWrap>
@@ -496,7 +650,10 @@ export function KanbanPage() {
             nav({ pathname: loc.pathname, search: next ? `?${next}` : '' }, { replace: true })
           }
         }}
-        onTaskUpdated={(updated) => setTasks((cur) => cur.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)))}
+        onTaskUpdated={(updated) => {
+          setTasks((cur) => cur.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)))
+          notifyProjectsSync()
+        }}
       />
     </PageLayout>
   )

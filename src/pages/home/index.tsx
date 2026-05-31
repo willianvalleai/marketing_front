@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import styled, { keyframes } from 'styled-components'
+import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { projectsService } from '@/shared/services/projects.service'
 import { tasksService } from '@/shared/services/tasks.service'
@@ -234,12 +234,6 @@ const Empty = styled.div`
   text-align: center;
   font-size: ${({ theme }) => theme.font.sm};
   color: ${({ theme }) => theme.colors.textMuted};
-`
-
-/* ── Sectors Section ─────────────────────────── */
-const sectorPulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
 `
 
 const SectorsSection = styled.div`

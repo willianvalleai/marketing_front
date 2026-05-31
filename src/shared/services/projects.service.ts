@@ -1,15 +1,23 @@
 import { api, unwrap } from './api'
-import type { Project, TaskPriority } from '@/shared/types'
+import type { Project, ProjectStatus, TaskPriority } from '@/shared/types'
+
+type ProjectPayloadBase = {
+  title: string
+  description?: string
+  clientId: string
+  briefing?: string
+  objectives?: string[]
+  targetAudience?: string
+  budget?: number
+  projectStatus?: ProjectStatus
+}
 
 export const projectsService = {
   async list(): Promise<Project[]> {
     const res = await api.get('/projects')
     return unwrap<Project[]>(res)
   },
-  async create(payload: {
-    title: string
-    description?: string
-    clientId: string
+  async create(payload: ProjectPayloadBase & {
     tasks?: Array<{
       title: string
       description?: string
@@ -24,7 +32,7 @@ export const projectsService = {
   },
   async update(
     id: string,
-    payload: Partial<Pick<Project, 'title' | 'description' | 'clientId'>>,
+    payload: Partial<ProjectPayloadBase>,
   ): Promise<Project> {
     const res = await api.put(`/projects/${id}`, payload)
     return unwrap<Project>(res)

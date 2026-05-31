@@ -15,6 +15,7 @@ export interface User {
   notes?: string | null
   isActive?: boolean
   sectors?: Sector[]
+  taskCount?: number
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'INTERNAL_REVIEW' | 'CHANGES_REQUESTED' | 'CLIENT_REVIEW' | 'DONE'
@@ -37,7 +38,7 @@ export interface TaskAssignee {
   userId: string
   assignedAt: string
   doneAt: string | null
-  user?: { id: string; name: string; email?: string; role?: string }
+  user?: { id: string; name: string; email?: string; role?: string; sectors?: Sector[] }
 }
 
 export interface ChecklistItem {
@@ -56,6 +57,15 @@ export interface TaskComment {
 
 export type RecurringPattern = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
+export interface SubTask {
+  id: string
+  title: string
+  status: TaskStatus
+  priority: TaskPriority
+  assignedToId: string | null
+  dueDate: string | null
+}
+
 export interface Task {
   id: string
   title: string
@@ -67,7 +77,7 @@ export interface Task {
   alertDaysBefore?: number | null
   alertSentAt?: string | null
   estimatedHours?: number | null
-  milestoneId?: string | null
+  subtaskParentId?: string | null
   requiredApprovals?: number | null
   isRecurring?: boolean
   recurringPattern?: RecurringPattern | null
@@ -77,7 +87,7 @@ export interface Task {
   projectId: string
   assignedToId: string | null
   assignees?: TaskAssignee[]
-  milestone?: Milestone
+  subtasks?: SubTask[]
 }
 
 export interface TaskDetails extends Task {
@@ -87,25 +97,10 @@ export interface TaskDetails extends Task {
   checklistItems: ChecklistItem[]
   comments: TaskComment[]
   assets?: Asset[]
+  subtasks: SubTask[]
 }
 
-export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
 export type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
-
-export interface Milestone {
-  id: string
-  projectId: string
-  title: string
-  description?: string | null
-  dueDate?: string | null
-  status: MilestoneStatus
-  order: number
-  createdAt: string
-  updatedAt: string
-  _count?: {
-    tasks: number
-  }
-}
 
 export interface TimeLog {
   id: string
@@ -131,7 +126,6 @@ export interface Project {
   targetAudience?: string | null
   budget?: number | null
   projectStatus?: ProjectStatus
-  milestones?: Milestone[]
 }
 
 export interface ChannelMember {

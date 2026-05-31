@@ -3,12 +3,9 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { clientService } from '@/shared/services/client.service'
-import { milestonesService } from '@/shared/services/milestones.service'
-import type { Asset, Milestone, Project, Task } from '@/shared/types'
+import type { Asset, Project, Task } from '@/shared/types'
 import { Button } from '@/shared/components/ui/Button'
-import { Textarea } from '@/shared/components/ui/Input'
-import { FolderOpen, Link as LinkIcon, ClipboardList, CheckCircle2, SendHorizonal, MessageSquareText, AlertCircle, Clock, CheckCircle, Circle, ArrowRight, Target } from 'lucide-react'
-import { Modal } from '@/shared/components/ui/Modal'
+import { FolderOpen, Link as LinkIcon, ClipboardList, CheckCircle2, SendHorizonal, MessageSquareText, AlertCircle, Clock, CheckCircle, Circle, ArrowRight } from 'lucide-react'
 
 const Grid = styled.div`
   display: grid;
@@ -247,83 +244,6 @@ const StepMeta = styled.div`
   color: #8b90a0;
   margin-bottom: 12px;
   line-height: 1.5;
-`
-
-const MilestoneGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  padding: 16px 20px;
-`
-
-const MilestoneCard = styled.div<{ $status: string }>`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 2px solid ${({ theme, $status }) =>
-    $status === 'COMPLETED' ? theme.colors.success :
-    $status === 'IN_PROGRESS' ? theme.colors.primary :
-    theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: all 0.2s;
-  
-  &:hover {
-    box-shadow: ${({ theme }) => theme.shadow.md};
-    transform: translateY(-2px);
-  }
-`
-
-const MilestoneCardHeader = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-`
-
-const MilestoneCardTitle = styled.div`
-  font-size: ${({ theme }) => theme.font.md};
-  font-weight: ${({ theme }) => theme.weights.bold};
-  color: ${({ theme }) => theme.colors.textDark};
-  line-height: 1.3;
-  flex: 1;
-`
-
-const MilestoneStatusBadge = styled.div<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  font-size: 8px;
-  font-weight: ${({ theme }) => theme.weights.bold};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: ${({ $status, theme }) =>
-    $status === 'COMPLETED' ? theme.colors.successMid :
-    $status === 'IN_PROGRESS' ? theme.colors.primaryMid :
-    theme.colors.borderStrong};
-  color: ${({ $status, theme }) =>
-    $status === 'COMPLETED' ? theme.colors.successText :
-    $status === 'IN_PROGRESS' ? theme.colors.primaryText :
-    theme.colors.textMuted};
-`
-
-const MilestoneCardDesc = styled.div`
-  font-size: ${({ theme }) => theme.font.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  line-height: 1.5;
-`
-
-const MilestoneCardFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  font-size: ${({ theme }) => theme.font.xs};
-  color: ${({ theme }) => theme.colors.textMuted};
 `
 
 const TasksList = styled.div`
@@ -626,11 +546,6 @@ const Chip = styled.a`
   &:hover { background: ${({ theme }) => theme.colors.primaryFaint}; border-color: ${({ theme }) => theme.colors.primaryMid}; }
 `
 
-const Form = styled.form`
-  display: grid;
-  gap: 10px;
-`
-
 const Hint = styled.div`
   font-size: ${({ theme }) => theme.font.xs};
   color: ${({ theme }) => theme.colors.textMuted};
@@ -792,7 +707,6 @@ export function ClientProjectPage() {
   const isCliente = user?.role === 'CLIENTE'
   const { projectId } = useParams()
   const [project, setProject] = useState<Project | null>(null)
-  const [milestones, setMilestones] = useState<Milestone[]>([])
   const [loading, setLoading] = useState(true)
 
   const [taskId, setTaskId] = useState<string | null>(null)
@@ -805,12 +719,8 @@ export function ClientProjectPage() {
     if (!projectId) return
     setLoading(true)
     try {
-      const [proj, miles] = await Promise.all([
-        clientService.project(projectId),
-        milestonesService.listByProject(projectId).catch(() => [] as Milestone[])
-      ])
+      const proj = await clientService.project(projectId)
       setProject(proj)
-      setMilestones(miles)
     } finally { setLoading(false) }
   }, [projectId])
 
@@ -954,42 +864,6 @@ export function ClientProjectPage() {
               )}
             </div>
           </div>
-        </Panel>
-      )}
-
-      {milestones.length > 0 && (
-        <Panel>
-          <PanelHead>
-            <PanelTitle><Target />Milestones & Fases</PanelTitle>
-          </PanelHead>
-          <MilestoneGrid>
-            {milestones.map((m) => (
-              <MilestoneCard key={m.id} $status={m.status}>
-                <MilestoneCardHeader>
-                  <MilestoneCardTitle>{m.title}</MilestoneCardTitle>
-                  <MilestoneStatusBadge $status={m.status}>
-                    {m.status === 'PENDING' && 'Pendente'}
-                    {m.status === 'IN_PROGRESS' && 'Em Andamento'}
-                    {m.status === 'COMPLETED' && 'Concluído'}
-                  </MilestoneStatusBadge>
-                </MilestoneCardHeader>
-                {m.description && <MilestoneCardDesc>{m.description}</MilestoneCardDesc>}
-                <MilestoneCardFooter>
-                  {m.dueDate && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock style={{ width: 12, height: 12 }} />
-                      {new Date(m.dueDate).toLocaleDateString('pt-BR')}
-                    </div>
-                  )}
-                  {m._count && (
-                    <div>
-                      {m._count.tasks} tarefa{m._count.tasks !== 1 ? 's' : ''}
-                    </div>
-                  )}
-                </MilestoneCardFooter>
-              </MilestoneCard>
-            ))}
-          </MilestoneGrid>
         </Panel>
       )}
 

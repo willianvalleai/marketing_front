@@ -86,13 +86,11 @@ export function KanbanColumn({
   title,
   tasks,
   onOpenTask,
-  projectMetaById,
 }: {
   status: TaskStatus
   title: string
   tasks: Task[]
   onOpenTask: (taskId: string) => void
-  projectMetaById: Record<string, { projectTitle: string; clientName: string }>
 }) {
   const id = `col:${status}`
   const { setNodeRef, isOver } = useDroppable({ id })
@@ -106,14 +104,11 @@ export function KanbanColumn({
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <DropArea ref={setNodeRef} $over={isOver}>
           {tasks.map((t) => {
-            const meta = projectMetaById[t.projectId]
             return (
               <TaskCard
                 key={t.id}
                 task={t}
                 onOpen={onOpenTask}
-                clientName={meta?.clientName}
-                projectTitle={meta?.projectTitle}
               />
             )
           })}

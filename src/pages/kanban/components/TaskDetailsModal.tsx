@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useAuth } from '@/app/providers/AuthContext'
 import { tasksService } from '@/shared/services/tasks.service'
 import { usersService } from '@/shared/services/users.service'
 import { timeLogsService } from '@/shared/services/time-logs.service'
-import { milestonesService } from '@/shared/services/milestones.service'
 import { getErrorMessage } from '@/shared/services/api'
-import type { ChecklistItem, Milestone, Task, TaskDetails, TaskPriority, TaskStatus, TimeLog, User } from '@/shared/types'
+import type { ChecklistItem, Task, TaskDetails, TaskPriority, TaskStatus, TimeLog, User } from '@/shared/types'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Select } from '@/shared/components/ui/Select'
 import { Modal } from '@/shared/components/ui/Modal'
+import { MessageSquare } from 'lucide-react'
 
 const Grid = styled.div`
   display: grid;
@@ -187,6 +187,137 @@ const CommentText = styled.div`
   word-break: break-word;
 `
 
+const MentionHighlight = styled.span`
+  color: #a5b4fc;
+  font-weight: 600;
+  cursor: default;
+`
+
+const MentionDropdown = styled.div`
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #1a1d27;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 100;
+  overflow: hidden;
+  max-height: 180px;
+  overflow-y: auto;
+`
+
+const MentionItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #e2e8f0;
+  transition: background 0.1s;
+  &:hover { background: rgba(99,102,241,0.15); }
+`
+
+const CommentInputWrap = styled.div`
+  position: relative;
+`
+
+const SubtaskItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  margin-bottom: 6px;
+`
+
+const SubtaskHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`
+
+const SubtaskCheckbox = styled.input`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+`
+
+const SubtaskTitle = styled.span<{ $done: boolean }>`
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: ${({ $done }) => $done ? '#94a3b8' : '#cbd5e1'};
+  text-decoration: ${({ $done }) => $done ? 'line-through' : 'none'};
+  flex: 1;
+`
+
+const SubtaskActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`
+
+const SubtaskCommentBtn = styled.button<{ $hasComments?: boolean }>`
+  background: transparent;
+  border: 1px solid ${({ $hasComments }) => $hasComments ? '#6366f1' : 'rgba(255,255,255,0.1)'};
+  color: ${({ $hasComments }) => $hasComments ? '#a5b4fc' : '#64748b'};
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+  
+  &:hover {
+    border-color: #6366f1;
+    color: #a5b4fc;
+    background: rgba(99,102,241,0.08);
+  }
+`
+
+const SubtaskCommentsSection = styled.div`
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+const SubtaskComment = styled.div`
+  font-size: 11px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  border-left: 2px solid #6366f1;
+`
+
+const SubtaskCommentAuthor = styled.div`
+  font-weight: 600;
+  color: #a5b4fc;
+  margin-bottom: 2px;
+  font-size: 10px;
+`
+
+const SubtaskCommentText = styled.div`
+  color: #cbd5e1;
+  line-height: 1.4;
+`
+
+const SubtaskCommentDate = styled.div`
+  font-size: 9px;
+  color: #64748b;
+  margin-top: 2px;
+`
+
 const Textarea = styled.textarea`
   width: 100%;
   min-height: 110px;
@@ -287,7 +418,6 @@ export function TaskDetailsModal({
 
   const [details, setDetails] = useState<TaskDetails | null>(null)
   const [users, setUsers] = useState<User[]>([])
-  const [milestones, setMilestones] = useState<Milestone[]>([])
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -296,7 +426,6 @@ export function TaskDetailsModal({
   const [dueDate, setDueDate] = useState('')
   const [alertDaysBefore, setAlertDaysBefore] = useState('')
   const [estimatedHours, setEstimatedHours] = useState('')
-  const [milestoneId, setMilestoneId] = useState('')
   const [requiredApprovals, setRequiredApprovals] = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringPattern, setRecurringPattern] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('WEEKLY')
@@ -313,6 +442,13 @@ export function TaskDetailsModal({
   const [editLogDesc, setEditLogDesc] = useState('')
   const [editLogDate, setEditLogDate] = useState('')
   const [savingEditLog, setSavingEditLog] = useState(false)
+
+  // Sub-tarefas
+  const [expandedSubtaskId, setExpandedSubtaskId] = useState<string | null>(null)
+  const [subtaskComments, setSubtaskComments] = useState<Record<string, any[]>>({})
+  const [loadingSubtaskComments, setLoadingSubtaskComments] = useState<Record<string, boolean>>({})
+  const [newSubtaskComment, setNewSubtaskComment] = useState<Record<string, string>>({})
+  const [savingSubtaskComment, setSavingSubtaskComment] = useState<Record<string, boolean>>({})
 
   const canInteract = user?.role !== 'CLIENTE'
 
@@ -343,20 +479,14 @@ export function TaskDetailsModal({
       setDueDate(toDateInputValue(d.dueDate))
       setAlertDaysBefore(d.alertDaysBefore?.toString() ?? '')
       setEstimatedHours(d.estimatedHours?.toString() ?? '')
-      setMilestoneId(d.milestoneId ?? '')
       setRequiredApprovals(d.requiredApprovals?.toString() ?? '')
       setIsRecurring(d.isRecurring ?? false)
       setRecurringPattern(d.recurringPattern ?? 'WEEKLY')
       setLabelsText((d.labels ?? []).join(', '))
       setAssigneeIds((d.assignees ?? []).map((a) => a.userId))
       
-      // Carregar milestones e time logs de forma independente
-      const [milestonesResult, logsResult] = await Promise.allSettled([
-        milestonesService.listByProject(d.projectId),
-        timeLogsService.listByTask(id),
-      ])
-      setMilestones(milestonesResult.status === 'fulfilled' ? milestonesResult.value : [])
-      setTimeLogs(logsResult.status === 'fulfilled' ? logsResult.value : [])
+      const logsResult = await timeLogsService.listByTask(id).catch(() => [] as TimeLog[])
+      setTimeLogs(logsResult)
     } catch (err) {
       setError(getErrorMessage(err, 'Falha ao carregar detalhes da tarefa.'))
       setDetails(null)
@@ -388,7 +518,6 @@ export function TaskDetailsModal({
         dueDate: dueDate ? dueDate : null,
         alertDaysBefore: alertDaysBefore ? parseInt(alertDaysBefore) : null,
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
-        milestoneId: milestoneId || null,
         requiredApprovals: requiredApprovals ? parseInt(requiredApprovals) : null,
         isRecurring: isRecurring,
         recurringPattern: isRecurring ? recurringPattern : null,
@@ -496,6 +625,102 @@ export function TaskDetailsModal({
     setDetails((cur) => (cur ? { ...cur, comments: [...cur.comments, created] } : cur))
   }
 
+  const createSubtask = async () => {
+    if (!taskId || !newSubtaskTitle.trim() || !details) return
+    setAddingSubtask(true)
+    try {
+      const created = await tasksService.create({
+        title: newSubtaskTitle.trim(),
+        projectId: details.projectId,
+        priority: 'MEDIUM',
+        subtaskParentId: taskId,
+      })
+      setDetails((cur) =>
+        cur
+          ? {
+              ...cur,
+              subtasks: [
+                ...(cur.subtasks ?? []),
+                { id: created.id, title: created.title, status: created.status, priority: created.priority, assignedToId: created.assignedToId, dueDate: created.dueDate },
+              ],
+            }
+          : cur
+      )
+      setNewSubtaskTitle('')
+    } catch (e) {
+      console.error('Erro ao criar subtarefa', e)
+    } finally {
+      setAddingSubtask(false)
+    }
+  }
+
+  const toggleSubtaskStatus = async (subtaskId: string, currentStatus: TaskStatus) => {
+    const newStatus: TaskStatus = currentStatus === 'DONE' ? 'TODO' : 'DONE'
+    
+    try {
+      await tasksService.update(subtaskId, { status: newStatus })
+      setDetails((cur) => {
+        if (!cur) return cur
+        return {
+          ...cur,
+          subtasks: (cur.subtasks ?? []).map((s) =>
+            s.id === subtaskId ? { ...s, status: newStatus } : s
+          ),
+        }
+      })
+      // Notifica a tarefa pai para atualizar o badge
+      if (details) {
+        onTaskUpdated({ ...details, subtasks: details.subtasks?.map(s => s.id === subtaskId ? { ...s, status: newStatus } : s) } as Task)
+      }
+    } catch (e) {
+      console.error('Erro ao atualizar status da subtarefa', e)
+    }
+  }
+
+  const toggleSubtaskComments = async (subtaskId: string) => {
+    if (expandedSubtaskId === subtaskId) {
+      setExpandedSubtaskId(null)
+      return
+    }
+
+    setExpandedSubtaskId(subtaskId)
+
+    // Se já carregou os comentários, não precisa carregar de novo
+    if (subtaskComments[subtaskId]) return
+
+    setLoadingSubtaskComments((prev) => ({ ...prev, [subtaskId]: true }))
+    try {
+      const subtaskDetails = await tasksService.get(subtaskId)
+      setSubtaskComments((prev) => ({
+        ...prev,
+        [subtaskId]: subtaskDetails.comments ?? [],
+      }))
+    } catch (e) {
+      console.error('Erro ao carregar comentários da subtarefa', e)
+    } finally {
+      setLoadingSubtaskComments((prev) => ({ ...prev, [subtaskId]: false }))
+    }
+  }
+
+  const addSubtaskComment = async (subtaskId: string) => {
+    const content = newSubtaskComment[subtaskId]?.trim()
+    if (!content) return
+
+    setSavingSubtaskComment((prev) => ({ ...prev, [subtaskId]: true }))
+    try {
+      const created = await tasksService.addComment(subtaskId, content)
+      setSubtaskComments((prev) => ({
+        ...prev,
+        [subtaskId]: [...(prev[subtaskId] ?? []), created],
+      }))
+      setNewSubtaskComment((prev) => ({ ...prev, [subtaskId]: '' }))
+    } catch (e) {
+      console.error('Erro ao adicionar comentário na subtarefa', e)
+    } finally {
+      setSavingSubtaskComment((prev) => ({ ...prev, [subtaskId]: false }))
+    }
+  }
+
   const markMyPart = async (done?: boolean) => {
     if (!taskId || !user?.id) return
     const updated = await tasksService.setAssigneeDone(taskId, user.id, done)
@@ -509,8 +734,55 @@ export function TaskDetailsModal({
   }
 
   const [newChecklistText, setNewChecklistText] = useState('')
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
+  const [addingSubtask, setAddingSubtask] = useState(false)
   const [newComment, setNewComment] = useState('')
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  function handleCommentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value
+    setNewComment(val)
+    const atIdx = val.lastIndexOf('@')
+    if (atIdx !== -1) {
+      const after = val.slice(atIdx + 1)
+      if (!after.includes(' ') && after.length <= 20) {
+        setMentionQuery(after.toLowerCase())
+        return
+      }
+    }
+    setMentionQuery(null)
+  }
+
+  function insertMention(name: string) {
+    const val = newComment
+    const atIdx = val.lastIndexOf('@')
+    if (atIdx === -1) return
+    const newVal = val.slice(0, atIdx) + '@' + name + ' '
+    setNewComment(newVal)
+    setMentionQuery(null)
+    setTimeout(() => {
+      const ta = commentTextareaRef.current
+      if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = newVal.length }
+    }, 0)
+  }
+
+  const mentionSuggestions = mentionQuery !== null
+    ? users.filter((u) => u.name.toLowerCase().includes(mentionQuery)).slice(0, 6)
+    : []
+
+  function renderCommentText(content: string) {
+    const parts = content.split(/(@\w[\w\s]{0,30}?)(?=\s|$|@)/g)
+    return parts.map((part, i) =>
+      part.startsWith('@') ? (
+        <MentionHighlight key={i}>{part}</MentionHighlight>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    )
+  }
   const [rejectMessage, setRejectMessage] = useState('')
 
   const submitForReview = async () => {
@@ -786,20 +1058,6 @@ export function TaskDetailsModal({
                 </Field>
               </Inline>
 
-              {milestones.length > 0 && (
-                <Field>
-                  <FieldLabel>Milestone/Fase</FieldLabel>
-                  <Select value={milestoneId} onChange={(e) => setMilestoneId(e.target.value)} disabled={!isAdmin}>
-                    <option value="">Nenhum</option>
-                    {milestones.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title} ({m.status === 'PENDING' ? 'Pendente' : m.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Concluído'})
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              )}
-
               <Field>
                 <FieldLabel style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input 
@@ -915,6 +1173,118 @@ export function TaskDetailsModal({
           </Section>
 
           <Section>
+            <SectionHeader>
+              Sub-tarefas
+              {(details.subtasks ?? []).length > 0 && (
+                <span style={{ fontSize: 10, color: '#64748b', marginLeft: 8 }}>
+                  {(details.subtasks ?? []).filter((s) => s.status === 'DONE').length}/{(details.subtasks ?? []).length} concluídas
+                </span>
+              )}
+            </SectionHeader>
+            <SectionBody>
+              {(details.subtasks ?? []).length === 0
+                ? <Muted>Nenhuma sub-tarefa ainda.</Muted>
+                : (details.subtasks ?? []).map((s) => (
+                <SubtaskItem key={s.id}>
+                  <SubtaskHeader>
+                    {canInteract && (
+                      <SubtaskCheckbox
+                        type="checkbox"
+                        checked={s.status === 'DONE'}
+                        onChange={() => void toggleSubtaskStatus(s.id, s.status)}
+                      />
+                    )}
+                    <SubtaskTitle $done={s.status === 'DONE'}>{s.title}</SubtaskTitle>
+                    <SubtaskActions>
+                      <span style={{ fontSize: 10, color: '#64748b', fontFamily: 'Inter, sans-serif' }}>
+                        {s.status === 'DONE' ? 'Concluída' : s.status === 'IN_PROGRESS' ? 'Em prog.' : 'A fazer'}
+                      </span>
+                      <SubtaskCommentBtn
+                        type="button"
+                        $hasComments={subtaskComments[s.id]?.length > 0}
+                        onClick={() => void toggleSubtaskComments(s.id)}
+                      >
+                        <MessageSquare style={{ width: 11, height: 11 }} />
+                        {subtaskComments[s.id]?.length || 0}
+                      </SubtaskCommentBtn>
+                    </SubtaskActions>
+                  </SubtaskHeader>
+
+                  {expandedSubtaskId === s.id && (
+                    <SubtaskCommentsSection>
+                      {loadingSubtaskComments[s.id] ? (
+                        <Muted style={{ fontSize: 10 }}>Carregando comentários...</Muted>
+                      ) : (subtaskComments[s.id] ?? []).length === 0 ? (
+                        <Muted style={{ fontSize: 10 }}>Nenhum comentário ainda.</Muted>
+                      ) : (
+                        (subtaskComments[s.id] ?? []).map((comment: any) => (
+                          <SubtaskComment key={comment.id}>
+                            <SubtaskCommentAuthor>
+                              {comment.author?.name ?? 'Usuário'} • {' '}
+                              <SubtaskCommentDate style={{ display: 'inline' }}>
+                                {new Date(comment.createdAt).toLocaleString('pt-BR')}
+                              </SubtaskCommentDate>
+                            </SubtaskCommentAuthor>
+                            <SubtaskCommentText>{comment.content}</SubtaskCommentText>
+                          </SubtaskComment>
+                        ))
+                      )}
+
+                      {canInteract && (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                          <Input
+                            value={newSubtaskComment[s.id] || ''}
+                            onChange={(e) =>
+                              setNewSubtaskComment((prev) => ({ ...prev, [s.id]: e.target.value }))
+                            }
+                            placeholder="Adicionar comentário..."
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                void addSubtaskComment(s.id)
+                              }
+                            }}
+                            style={{ fontSize: 11 }}
+                          />
+                          <Button
+                            data-variant="primary"
+                            data-size="sm"
+                            type="button"
+                            disabled={!newSubtaskComment[s.id]?.trim() || savingSubtaskComment[s.id]}
+                            onClick={() => void addSubtaskComment(s.id)}
+                            style={{ fontSize: 10, padding: '4px 10px' }}
+                          >
+                            {savingSubtaskComment[s.id] ? '...' : 'Enviar'}
+                          </Button>
+                        </div>
+                      )}
+                    </SubtaskCommentsSection>
+                  )}
+                </SubtaskItem>
+              ))}
+              {isAdmin && (
+                <Inline style={{ marginTop: 8 }}>
+                  <Input
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Título da sub-tarefa..."
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void createSubtask() } }}
+                  />
+                  <Button
+                    data-variant="primary"
+                    data-size="sm"
+                    type="button"
+                    disabled={!newSubtaskTitle.trim() || addingSubtask}
+                    onClick={() => void createSubtask()}
+                  >
+                    {addingSubtask ? '…' : 'Adicionar'}
+                  </Button>
+                </Inline>
+              )}
+            </SectionBody>
+          </Section>
+
+          <Section>
             <SectionHeader>Checklist</SectionHeader>
             <SectionBody>
               {details.checklistItems.length === 0 ? <Muted>Sem checklist ainda.</Muted> : (
@@ -972,7 +1342,7 @@ export function TaskDetailsModal({
                           <CommentAuthor>{c.author?.name ?? 'Usuário'}</CommentAuthor>
                           <CommentDate>{new Date(c.createdAt).toLocaleString('pt-BR')}</CommentDate>
                         </CommentHeader>
-                        <CommentText>{c.content}</CommentText>
+                        <CommentText>{renderCommentText(c.content)}</CommentText>
                       </CommentContent>
                     </CommentCard>
                   ))}
@@ -981,7 +1351,26 @@ export function TaskDetailsModal({
 
               <Field style={{ marginTop: 8 }}>
                 <FieldLabel>Novo comentário</FieldLabel>
-                <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escreva um comentário…" />
+                <CommentInputWrap>
+                  <Textarea
+                    ref={commentTextareaRef}
+                    value={newComment}
+                    onChange={handleCommentChange}
+                    placeholder="Escreva um comentário… (use @ para mencionar)"
+                  />
+                  {mentionSuggestions.length > 0 && (
+                    <MentionDropdown>
+                      {mentionSuggestions.map((u) => (
+                        <MentionItem key={u.id} onMouseDown={(e) => { e.preventDefault(); insertMention(u.name) }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700, flexShrink: 0 }}>
+                            {u.name.charAt(0).toUpperCase()}
+                          </span>
+                          {u.name}
+                        </MentionItem>
+                      ))}
+                    </MentionDropdown>
+                  )}
+                </CommentInputWrap>
                 <Button
                   data-variant="primary"
                   data-size="sm"

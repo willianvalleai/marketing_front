@@ -11,7 +11,7 @@ export const usersService = {
     name: string
     email: string
     password: string
-    role: Exclude<Role, 'ADMIN'>
+    role: Role
     phone?: string
     company?: string
     notes?: string

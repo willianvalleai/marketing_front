@@ -6,10 +6,12 @@ import { LoginPage } from '@/pages/login'
 import { HomePage } from '@/pages/home'
 import { ProjetosPage } from '@/pages/projetos'
 import { UsersPage } from '@/pages/users'
+import { ColaboradoresPage } from '@/pages/colaboradores'
 import { KanbanPage } from '@/pages/kanban'
 import { ChatPage } from '@/pages/chat'
 import { CalendarioPage } from '@/pages/calendario'
 import { ClientProjectPage } from '@/pages/projetos/client'
+import { PainelPage } from '@/pages/painel'
 
 export function AppRouter() {
   return (
@@ -30,9 +32,11 @@ export function AppRouter() {
           <Route path="projetos" element={<ProjetosPage />} />
           <Route path="projetos/:projectId" element={<ClientProjectPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="colaboradores" element={<ColaboradoresPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="calendario" element={<CalendarioPage />} />
+          <Route path="painel" element={<PainelPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/home" replace />} />

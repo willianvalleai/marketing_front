@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 import styled from 'styled-components'
 import type { Task } from '@/shared/types'
-import { GripVertical, Clock, AlertTriangle, MessageSquare, Paperclip } from 'lucide-react'
+import { Clock, AlertTriangle, MessageSquare, Paperclip, ListTodo } from 'lucide-react'
 
 const Wrap = styled.div`
   background: rgba(25, 25, 25, 0.4);
@@ -30,14 +30,6 @@ const CardTop = styled.div`
   gap: 8px;
 `
 
-const CardTopLeft = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-`
-
 const LabelBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -52,14 +44,6 @@ const LabelBadge = styled.span`
   border: 1px solid rgba(143, 216, 255, 0.2);
   color: #8fd8ff;
   white-space: nowrap;
-`
-
-const GripIcon = styled.div`
-  margin-top: 2px;
-  flex-shrink: 0;
-  color: #8b90a0;
-  opacity: 0.4;
-  svg { width: 14px; height: 14px; }
 `
 
 const Title = styled.div`
@@ -96,26 +80,6 @@ const PriorityChip = styled.span<{ $p: 'HIGH' | 'MEDIUM' | 'LOW' }>`
     $p === 'HIGH' ? '#ffb4ab' :
     $p === 'MEDIUM' ? '#c2c1ff' :
     '#8b90a0'};
-`
-
-const DueDateText = styled.span`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 9px;
-  font-weight: 400;
-  line-height: 16.5px;
-  color: #8b90a0;
-`
-
-const ContextText = styled.span`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 8px;
-  font-weight: 400;
-  line-height: 15px;
-  color: #8b90a0;
-  border: 1px solid rgba(65, 71, 85, 0.2);
-  background: #353535;
-  padding: 3px 9px;
-  border-radius: 6px;
 `
 
 const DueAlertBadge = styled.span<{ $variant: 'warning' | 'danger' }>`
@@ -174,6 +138,21 @@ const CardStats = styled.div`
   gap: 12px;
 `
 
+const SubtaskBadge = styled.div<{ $done: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  background: ${({ $done }) => $done ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.1)'};
+  border: 1px solid ${({ $done }) => $done ? 'rgba(16, 185, 129, 0.25)' : 'rgba(99, 102, 241, 0.2)'};
+  color: ${({ $done }) => $done ? '#34d399' : '#a5b4fc'};
+  svg { width: 10px; height: 10px; }
+`
+
 const Stat = styled.div`
   display: flex;
   align-items: center;
@@ -193,13 +172,9 @@ const Stat = styled.div`
 export function TaskCard({
   task,
   onOpen,
-  projectTitle,
-  clientName,
 }: {
   task: Task
   onOpen?: (taskId: string) => void
-  projectTitle?: string
-  clientName?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -219,6 +194,13 @@ export function TaskCard({
     }
     return null
   }, [task.dueDate, task.status])
+
+  const subtaskInfo = useMemo(() => {
+    const subs = task.subtasks ?? []
+    if (subs.length === 0) return null
+    const done = subs.filter((s) => s.status === 'DONE').length
+    return { total: subs.length, done, allDone: done === subs.length }
+  }, [task.subtasks])
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -304,13 +286,19 @@ export function TaskCard({
           </Assignees>
           
           <CardStats>
+            {subtaskInfo && (
+              <SubtaskBadge $done={subtaskInfo.allDone} title={`${subtaskInfo.done}/${subtaskInfo.total} sub-tarefas concluídas`}>
+                <ListTodo />
+                {subtaskInfo.done}/{subtaskInfo.total}
+              </SubtaskBadge>
+            )}
             <Stat>
               <MessageSquare />
-              {task.comments?.length ?? 0}
+              {0}
             </Stat>
             <Stat>
               <Paperclip />
-              {task.attachments?.length ?? 0}
+              {0}
             </Stat>
           </CardStats>
         </CardFooter>

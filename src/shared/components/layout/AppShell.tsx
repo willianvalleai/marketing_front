@@ -12,7 +12,9 @@ import {
   LogOut,
   ChevronRight,
   Zap,
+  BarChart2,
 } from 'lucide-react'
+import { GlobalSearch } from '@/shared/components/GlobalSearch'
 
 /* ── Shell ─────────────────────────────────────────────── */
 const Shell = styled.div`
@@ -212,6 +214,8 @@ const Topbar = styled.header`
   background: rgba(25, 25, 25, 0.4);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  position: relative;
+  z-index: 200;
 `
 
 const Breadcrumb = styled.div`
@@ -258,8 +262,10 @@ const TITLES: Record<string, string> = {
   '/projetos': 'Projetos',
   '/kanban': 'Kanban',
   '/chat': 'Chat',
-  '/users': 'Usuários',
+  '/users': 'Clientes',
+  '/colaboradores': 'Central do Colaborador',
   '/calendario': 'Calendário',
+  '/painel': 'Painel',
 }
 
 export function AppShell() {
@@ -287,10 +293,12 @@ export function AppShell() {
           {!isCliente && <NavItem to="/kanban"><Kanban /><NavText>Kanban</NavText></NavItem>}
           <NavItem to="/chat"><MessageSquare /><NavText>Chat</NavText></NavItem>
           {isCliente && <NavItem to="/calendario"><CalendarDays /><NavText>Calendário</NavText></NavItem>}
+          <NavItem to="/painel"><BarChart2 /><NavText>Painel</NavText></NavItem>
           {isAdmin && (
             <>
               <SectionLabel>Admin</SectionLabel>
-              <NavItem to="/users"><Users /><NavText>Usuários</NavText></NavItem>
+              <NavItem to="/colaboradores"><Users /><NavText>Central do Colaborador</NavText></NavItem>
+              <NavItem to="/users"><Users /><NavText>Clientes</NavText></NavItem>
             </>
           )}
         </SidebarBody>
@@ -323,6 +331,7 @@ export function AppShell() {
             <BreadcrumbCurrent>{pageTitle}</BreadcrumbCurrent>
           </Breadcrumb>
           <TopbarRight>
+            <GlobalSearch />
             <NotificationsBell />
           </TopbarRight>
         </Topbar>

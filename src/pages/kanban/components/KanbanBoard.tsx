@@ -25,12 +25,10 @@ export function KanbanBoard({
   tasks,
   onMoveTask,
   onOpenTask,
-  projectMetaById,
 }: {
   tasks: Task[]
   onMoveTask: (taskId: string, toStatus: TaskStatus) => void
   onOpenTask: (taskId: string) => void
-  projectMetaById: Record<string, { projectTitle: string; clientName: string }>
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -82,7 +80,6 @@ export function KanbanBoard({
             title={c.title}
             tasks={byStatus[c.status]}
             onOpenTask={onOpenTask}
-            projectMetaById={projectMetaById}
           />
         ))}
       </Board>
