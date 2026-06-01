@@ -621,7 +621,11 @@ export function TaskDetailsModal({
 
   const addComment = async (content: string) => {
     if (!taskId || !content.trim()) return
-    const created = await tasksService.addComment(taskId, content.trim())
+    if (commentVisibility === 'CLIENT_VISIBLE') {
+      const confirmed = window.confirm('O cliente também verá essa mensagem. Deseja continuar?')
+      if (!confirmed) return
+    }
+    const created = await tasksService.addComment(taskId, content.trim(), commentVisibility)
     setDetails((cur) => (cur ? { ...cur, comments: [...cur.comments, created] } : cur))
   }
 
@@ -737,6 +741,7 @@ export function TaskDetailsModal({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [addingSubtask, setAddingSubtask] = useState(false)
   const [newComment, setNewComment] = useState('')
+  const [commentVisibility, setCommentVisibility] = useState<'INTERNAL' | 'CLIENT_VISIBLE'>('INTERNAL')
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
@@ -1339,7 +1344,26 @@ export function TaskDetailsModal({
                       </CollaboratorAvatar>
                       <CommentContent>
                         <CommentHeader>
-                          <CommentAuthor>{c.author?.name ?? 'Usuário'}</CommentAuthor>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <CommentAuthor>{c.author?.name ?? 'Usuário'}</CommentAuthor>
+                            {!c.isSystemComment && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.04em',
+                                  padding: '2px 6px',
+                                  borderRadius: 9999,
+                                  background: c.visibility === 'CLIENT_VISIBLE' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(251, 191, 36, 0.18)',
+                                  color: c.visibility === 'CLIENT_VISIBLE' ? '#34d399' : '#fbbf24',
+                                  border: c.visibility === 'CLIENT_VISIBLE' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(251, 191, 36, 0.3)',
+                                }}
+                              >
+                                {c.visibility === 'CLIENT_VISIBLE' ? 'Cliente vê' : 'Interno'}
+                              </span>
+                            )}
+                          </div>
                           <CommentDate>{new Date(c.createdAt).toLocaleString('pt-BR')}</CommentDate>
                         </CommentHeader>
                         <CommentText>{renderCommentText(c.content)}</CommentText>
@@ -1351,6 +1375,31 @@ export function TaskDetailsModal({
 
               <Field style={{ marginTop: 8 }}>
                 <FieldLabel>Novo comentário</FieldLabel>
+                {canInteract && (
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <Button
+                      data-variant={commentVisibility === 'INTERNAL' ? 'primary' : 'ghost'}
+                      data-size="sm"
+                      type="button"
+                      onClick={() => setCommentVisibility('INTERNAL')}
+                    >
+                      Interno (equipe)
+                    </Button>
+                    <Button
+                      data-variant={commentVisibility === 'CLIENT_VISIBLE' ? 'primary' : 'ghost'}
+                      data-size="sm"
+                      type="button"
+                      onClick={() => setCommentVisibility('CLIENT_VISIBLE')}
+                    >
+                      Visível ao cliente
+                    </Button>
+                  </div>
+                )}
+                {commentVisibility === 'CLIENT_VISIBLE' && (
+                  <Muted style={{ marginBottom: 8, color: '#f59e0b' }}>
+                    Atenção: o cliente também verá esta mensagem.
+                  </Muted>
+                )}
                 <CommentInputWrap>
                   <Textarea
                     ref={commentTextareaRef}

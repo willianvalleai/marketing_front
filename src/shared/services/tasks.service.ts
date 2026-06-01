@@ -34,8 +34,8 @@ export const tasksService = {
     const res = await api.put(`/tasks/${encodeURIComponent(id)}`, payload)
     return unwrap<Task>(res)
   },
-  async addComment(taskId: string, content: string): Promise<TaskComment> {
-    const res = await api.post(`/tasks/${encodeURIComponent(taskId)}/comments`, { content })
+  async addComment(taskId: string, content: string, visibility: 'INTERNAL' | 'CLIENT_VISIBLE' = 'INTERNAL'): Promise<TaskComment> {
+    const res = await api.post(`/tasks/${encodeURIComponent(taskId)}/comments`, { content, visibility })
     return unwrap<TaskComment>(res)
   },
   async addChecklistItem(taskId: string, text: string): Promise<ChecklistItem> {

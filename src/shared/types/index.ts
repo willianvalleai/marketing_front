@@ -52,6 +52,8 @@ export interface TaskComment {
   content: string
   createdAt: string
   authorId: string
+  isSystemComment?: boolean
+  visibility?: 'INTERNAL' | 'CLIENT_VISIBLE'
   author: User
 }
 
